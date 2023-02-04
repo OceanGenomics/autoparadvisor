@@ -1,1 +1,5 @@
 Codes for the manuscript "Adaptive, sample-specific parameter selection for more accurate transcript assembly", Yihang Shen and Carl Kingsford.
+
+
+
+representative_sample_accesion_number: 1263 RNA-seq samples used for contrastive training. 
