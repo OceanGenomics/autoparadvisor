@@ -90,7 +90,7 @@ def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,s
     cmd = "grep -c '^chr' "+ str(pid) + ".gtf"
     chr_header = int(subprocess.getoutput(cmd))
     print(chr_header)
-    if(chr_header>0):
+    #if(chr_header>0):
         #cmd = "sed -i 's/^chr//' " + str(pid) + ".gtf"
         #cmd = "cut -c4- " + str(pid) + ".gtf > " + str(pid) + "_new.gtf"
         #print(cmd)

@@ -9,6 +9,7 @@ import pickle
 import pandas as pd
 import time, datetime
 from test_funcs.random_seed_config import *
+import yaml
 
 # Set up the objective function
 parser = argparse.ArgumentParser('Run Experiments')
@@ -102,11 +103,16 @@ for t in range(args.n_trials):
     print('----- Starting trial %d / %d -----' % ((t + 1), args.n_trials))
     res = pd.DataFrame(np.nan, index=np.arange(int(args.max_iters*args.batch_size)),
                        columns=['Index', 'LastValue', 'BestValue', 'Time'])
-    if args.infer_noise_var: noise_variance = None
-    else: noise_variance = f.lamda if hasattr(f, 'lamda') else None
+    if args.infer_noise_var: 
+        noise_variance = None
+    else: 
+        noise_variance = f.lamda if hasattr(f, 'lamda') else None
 
-    if args.kernel_type is None:  kernel_type = 'mixed' if problem_type == 'mixed' else 'transformed_overlap'
-    else: kernel_type = args.kernel_type
+    if args.kernel_type is None:  
+        kernel_type = 'mixed' if problem_type == 'mixed' else 'transformed_overlap'
+    else: 
+        kernel_type = args.kernel_type
+
     if args.cawarmup > 0:
         if(args.sub_sample<1):
             cmd = 'perl ca_warmup.pl ./warmup_' + args.bamid + "_subsample_" + str(args.sub_sample) + " " + f.bam_file + " " + f.library_type + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.scallop_path + " " + str(args.sub_sample)
