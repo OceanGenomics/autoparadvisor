@@ -1,0 +1,3 @@
+BO_training/contrastive_training/input_features.npy
+BO_training/contrastive_training/similarity_mat_subsample.npy
+BO_training/contrastive_training/similarity_mat.npy
