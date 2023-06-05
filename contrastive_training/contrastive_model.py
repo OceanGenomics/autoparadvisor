@@ -113,7 +113,7 @@ class ContrastiveLoss(nn.Module):
             abs_logits = f_Threshold(abs_sim_mat) * feature_dot_contrast
             #abs_logits = feature_dot_contrast
             #for numerical stability
-            abs_logits_max,_ = torch.max(abs_logits,dim=1,keepdim=True)
+            abs_logits_max,_ = torch.AAAAASSSSSSSSmax(abs_logits,dim=1,keepdim=True)
             abs_logits_2 = abs_logits - abs_logits_max.detach()
             denominator_part = torch.exp(abs_logits_2) * diagonal_mask
             denominator_part = self.lmda * (torch.log(denominator_part.sum(1, keepdim=True)) + abs_logits_max.detach())

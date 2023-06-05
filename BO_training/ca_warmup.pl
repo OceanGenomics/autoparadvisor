@@ -19,7 +19,7 @@ $lib_type = shift;
 chomp $lib_type;
 
 # This is the reference type of aligned reads
-my $ref_file = "/mnt/disk69/user/yihangs/hyper_tuning/scallopadvising/training/data/GRCh37.gtf";
+my $ref_file = "/biodb/human/gencode/v35/gene_annotations.gtf";
 $ref_file = shift;
 chomp $ref_file;
 
@@ -136,7 +136,7 @@ sub run_with_one_change{
   $check = shift;
 
   # "--min_transcript_coverage 0" sets allows the AUC to work on the quality threshold output by Scallop
-  my $command = "${scallop_path}scallop -i $experement_file --min_transcript_coverage 0 --library_type $lib_type";
+  my $command = "${scallop_path}scallop -i $experement_file --verbose 0 --min_transcript_coverage 0 --library_type $lib_type";
   my $out_fname = "";
   return 0 if($param_value ne "" && (($type{$param_to_change} eq "bool" && $param_value > 1) || $param_value < 0));
 
@@ -200,7 +200,7 @@ sub run_with_one_change{
       if(`grep -c "^chr" $working_dir/$out_fname.gtf` > 0){
         system("sed -i 's/^chr//' $working_dir/$out_fname.gtf");
       }
-      system("gffcompare -r $ref_file -o $working_dir/$out_fname $working_dir/$out_fname.gtf");
+      system("/data008/users/zyan/software/gffcompare/gffcompare -r $ref_file -o $working_dir/$out_fname $working_dir/$out_fname.gtf");
       if((-e "$working_dir/$out_fname.$out_fname.gtf.tmap")){
         # $num_transcripts should match the number of transcripts in the reference
         #if($ref_type eq "GRCh37"){
@@ -210,7 +210,7 @@ sub run_with_one_change{
         #}
         my $num_transcripts = 197649;
 
-        $auc = `gtfcuff auc $working_dir/$out_fname.$out_fname.gtf.tmap $num_transcripts | tee $working_dir/$out_fname.auc`;
+        $auc = `/data008/users/zyan/software/rnaseqtools-1.0.3/gtfcuff/gtfcuff auc $working_dir/$out_fname.$out_fname.gtf.tmap $num_transcripts | tee $working_dir/$out_fname.auc`;
         system("rm $working_dir/$out_fname.$out_fname.gtf.refmap $working_dir/$out_fname.loci $working_dir/$out_fname.annotated.gtf $working_dir/$out_fname.tracking");
         system("gzip $working_dir/$out_fname.gtf");
       }else{

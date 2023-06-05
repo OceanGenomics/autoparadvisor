@@ -2,7 +2,7 @@ from contrastive_model import *
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--batch_size',type=int,help='batch size')
+parser.add_argument('--batch_size',type=int,default=32,help='batch size')
 parser.add_argument('--lmda',default=0.2,type=float,help='lmda')
 parser.add_argument('--beta',default=1.0,type=float,help='beta')
 parser.add_argument('--usesubsample',default=1,type=int,help='whether use subsample')
@@ -33,7 +33,7 @@ with open("representative_set_1300_all_hasBO_filtered_new","rt")as f:
     freader = csv.reader(f,delimiter='\t')
     for line in freader:
         mash_array = np.load("/mnt/disk18/user/yihangs/learn_and_optimize/mash_files/"+line[0]+".npy")
-        hash_mat = np.vstack((hash_mat,mash_array[0]))
+        hash_mat = np.vscontack((hash_mat,mash_array[0]))
         count_mat = np.vstack((count_mat,mash_array[1]))
 representative_mash_normalized_mat = np.concatenate(((hash_mat-mat_params[0,0])/mat_params[0,1],(count_mat-mat_params[1,0])/mat_params[1,1]),axis=1)
 '''
@@ -49,7 +49,7 @@ training_size = 1263
 #input_mash_mat = torch.from_numpy(input_mash_mat_np).to(dtype=dtype,device=device)
 #data_size = input_mash_mat.shape[0]
 
-input_mash_mat_subsample_np = np.load("input_features.npy")
+input_mash_mat_subsample_np = np.load("/contrastive_training/input_features.npy")
 input_mash_mat_subsample = torch.from_numpy(input_mash_mat_subsample_np).to(dtype=dtype,device=device)
 
 input_mash_mat_np = input_mash_mat_subsample_np[np.arange(training_size)*8+7]

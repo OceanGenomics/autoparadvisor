@@ -80,7 +80,7 @@ def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,s
     if(subsamp<1):
         cmd += " --subsampling " + str(subsamp)
     cmd +=" --library_type " + library_type
-    cmd +=" -o ./" + str(pid) + ".gtf"
+    cmd +=" -o ./" + str(pid) + ".gtf" + " > /dev/null 2>&1"
     print("Run scallop with the following command: \n")
     print(cmd)
     os.system(cmd)
@@ -91,17 +91,17 @@ def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,s
     chr_header = int(subprocess.getoutput(cmd))
     print(chr_header)
     if(chr_header>0):
-        cmd = "sed -i 's/^chr//' " + str(pid) + ".gtf"
+        #cmd = "sed -i 's/^chr//' " + str(pid) + ".gtf"
         #cmd = "cut -c4- " + str(pid) + ".gtf > " + str(pid) + "_new.gtf"
-        print(cmd)
-        os.system(cmd)
+        #print(cmd)
+        #os.system(cmd)
         #cmd = "mv " + str(pid) + "_new.gtf " + str(pid) + ".gtf"
         #os.system(cmd)
-    cmd = "gffcompare -r " + ref_file + ' ./' + str(pid) + ".gtf"
+    cmd = "/data008/users/zyan/software/gffcompare/gffcompare -r " + ref_file + ' ./' + str(pid) + ".gtf"
     print("Run gffcompare: \n")
     print(cmd)
     os.system(cmd)
-    cmd = "gtfcuff auc ./" + 'gffcmp.' + str(pid) + ".gtf" + ".tmap " + str(num_transcripts)
+    cmd = "/data008/users/zyan/software/rnaseqtools-1.0.3/gtfcuff/gtfcuff auc ./" + 'gffcmp.' + str(pid) + ".gtf" + ".vim " + str(num_transcripts)
     print("Run gtfcuff: \n")
     print(cmd)
     #pdb.set_trace()
@@ -122,7 +122,7 @@ def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,s
 
 class Scallop(TestFunction):
     problem_type = 'mixed'
-    def __init__(self, bam_file, normalize=False,boundary_fold = 0,ref_file="/mnt/disk69/user/yihangs/hyper_tuning/test/GRCh38.gtf",library_type = 'empty'):
+    def __init__(self, bam_file, normalize=False,boundary_fold = 0,ref_file='',library_type = 'empty'):
         super(Scallop,self).__init__(normalize)
         assert boundary_fold>=0
         self.para_to_index = {}
@@ -192,6 +192,7 @@ class Scallop(TestFunction):
             for process in process_list:
                 process.join()
             Y = list(Y)
+        # return the negative AUC score as accuracy
         return -np.array(Y)
     def read_para_from_file(self,file_name):
         para_x = np.zeros(self.dim)

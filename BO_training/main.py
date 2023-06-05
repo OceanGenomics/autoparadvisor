@@ -67,7 +67,7 @@ for t in range(args.n_trials):
             'length_init_discrete': 20,
         }
     elif args.problem == 'Scallop':
-        f = Scallop(args.scallop_bam,boundary_fold = 0,ref_file="/mnt/disk69/user/yihangs/hyper_tuning/test/"+args.scallop_ref+".gtf",library_type=args.scallop_lib_type)
+        f = Scallop(args.scallop_bam,boundary_fold = 0,ref_file="/biodb/human/gencode/v35/gene_annotations.gtf",library_type=args.scallop_lib_type)
         kwargs = {'failtol':18, 'guided_restart':False,'length_init_discrete':20, 'length_min':0.02}
     elif args.problem == 'func2C':
         f = Func2C(lamda=args.lamda)

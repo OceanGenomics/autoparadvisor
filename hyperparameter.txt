@@ -1,0 +1,43 @@
+//// parameters
+// for bam file and reads
+--int min_flank_length = 3;
+int max_num_cigar = 7;  
+--int max_edit_distance = 10;
+--int32_t min_bundle_gap = 50;
+--int min_num_hits_in_bundle = 20;
+--uint32_t min_mapping_quality = 1;
+--int32_t min_splice_boundary_hits = 1;
+--bool use_second_alignment = false;
+--bool uniquely_mapped_only = false;
+int library_type = EMPTY;
+
+// for preview
+int max_preview_reads = 2000000;
+int max_preview_spliced_reads = 50000;
+int min_preview_spliced_reads = 10000;
+double preview_infer_ratio = 0.95;
+bool preview_only = false;
+
+// for identifying subgraphs
+--int32_t min_subregion_gap = 3;
+--double min_subregion_overlap = 1.5;
+--int32_t min_subregion_length = 15;
+
+// for revising/decomposing splice graph
+--double max_intron_contamination_coverage = 2.0;
+double min_surviving_edge_weight = 1.5;
+double max_decompose_error_ratio[7] = {0.33, 0.05, 0.0, 0.25, 0.30, 0.0, 1.1};      //not sure how these num defined
+
+// for selecting paths
+double min_transcript_coverage = 1.01;
+double min_transcript_coverage_ratio = 0.005;       //seems not used
+double min_single_exon_coverage = 20;
+double min_transcript_numreads = 20;        // seems not used
+--int min_transcript_length_base = 150;
+--int min_transcript_length_increase = 50;
+--int min_exon_length = 20;
+--int max_num_exons = 1000;
+
+// for subsetsum and router
+--int max_dp_table_size = 10000;        //seems not used
+--int min_router_count = 1;

@@ -11,7 +11,7 @@ from gpytorch.likelihoods import GaussianLikelihood
 from gpytorch.means import ConstantMean
 from gpytorch.mlls import ExactMarginalLogLikelihood
 from gpytorch.models import ExactGP
-from collections import Callable
+from collections.abc import Callable
 import random
 from copy import deepcopy
 import time
@@ -441,10 +441,14 @@ def interleaved_search(x_center, f: Callable,
                 acq = f_cont(x_cont_torch).float()
                 try:
                     acq.backward()
+                except RuntimeError:
+                    print('Exception occured during backpropagation. NaN encountered?')
+                    pass
+                try:
                     #print(x_cont_torch, acq, x_cont_torch.grad)
                     optimizer.step()
                 except RuntimeError:
-                    print('Exception occured during backpropagation. NaN encountered?')
+                    print('Exception occured during opttimizer. NaN encountered?')
                     pass
                 with torch.no_grad():
                     # Ugly way to do clipping
