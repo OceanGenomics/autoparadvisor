@@ -52,14 +52,10 @@ def Scallop(X,ref_file,num_transcripts,bam_file):
 
 '''
 
-
-def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,scallop_path='',subsamp=1):
-    #pdb.set_trace()
+def Scallop_base_yaml(index,x,Result,ref_file,num_transcripts,bam_file,library_type,software_path='',subsamp=1):
     pid = os.getpid()
-    if(scallop_path==''):
-        cmd = "scallop -i " + bam_file + " --verbose 0 --min_transcript_coverage 0"
-    else:
-        cmd = scallop_path + "scallop -i " + bam_file + " --verbose 0 --min_transcript_coverage 0"
+    cmd = software_path + "scallop -i " + bam_file + " --verbose 0 --min_transcript_coverage 0"
+
     for i in range(x.shape[0]):
         if(scallop_bounds[i]["name"]=="uniquely_mapped_only" or scallop_bounds[i]["name"]=="use_second_alignment"):
             if(int(x[i])==0):
@@ -102,6 +98,71 @@ def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,s
     print(cmd)
     os.system(cmd)
     cmd = "/data008/users/zyan/software/rnaseqtools-1.0.3/gtfcuff/gtfcuff auc ./" + 'gffcmp.' + str(pid) + ".gtf" + ".vim " + str(num_transcripts)
+    print("Run gtfcuff: \n")
+    print(cmd)
+    #pdb.set_trace()
+    result = subprocess.getoutput(cmd)
+    print(result)
+    if(len(str(result))<10):
+        auc_val = 0.0
+    else:
+        auc_val = float(str(result).split("auc")[-1].split("=")[-1].split("\\")[0])
+    print(auc_val)
+    Result[index] = auc_val
+    cmd = 'rm '+ str(pid) + ".gtf"
+    os.system(cmd)
+    cmd = 'rm *.' + str(pid) + '.*'
+    os.system(cmd)
+
+def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,scallop_path='',subsamp=1):
+    #pdb.set_trace()
+    pid = os.getpid()
+    if(scallop_path==''):
+        cmd = "scallop -i " + bam_file + " --verbose 0 --min_transcript_coverage 0"
+    else:
+        cmd = scallop_path + "scallop -i " + bam_file + " --verbose 0 --min_transcript_coverage 0"
+    for i in range(x.shape[0]):
+        if(scallop_bounds[i]["name"]=="uniquely_mapped_only" or scallop_bounds[i]["name"]=="use_second_alignment"):
+            if(int(x[i])==0):
+                cmd += " --" + scallop_bounds[i]["name"] + " false"
+            else:
+                cmd += " --" + scallop_bounds[i]["name"] + " true"
+            continue
+        if(scallop_bounds[i]["type"]=="int"):
+            cmd += " --" + scallop_bounds[i]["name"] + " " + str(int(x[i]))
+        else:
+            cmd += " --" + scallop_bounds[i]["name"] + " " + str(x[i])
+        '''
+        if(var_types[i]=='float'):
+            cmd += " --" + Scallop_index_to_para[i] + " " + str(x[i].item())
+        else:
+            cmd += " --" + Scallop_index_to_para[i] + " " + str(x[i].int().item())
+        '''
+    if(subsamp<1):
+        cmd += " --subsampling " + str(subsamp)
+    cmd +=" --library_type " + library_type
+    cmd +=" -o ./" + str(pid) + ".gtf" + " > /dev/null 2>&1"
+    print("Run scallop with the following command: \n")
+    print(cmd)
+    os.system(cmd)
+    #pdb.set_trace()
+    #if the chromosome head starts with 'chr', remove it
+    #cmd = "head -c 3 " + str(pid) + ".gtf"
+    cmd = "grep -c '^chr' "+ str(pid) + ".gtf"
+    chr_header = int(subprocess.getoutput(cmd))
+    print(chr_header)
+    if(chr_header>0):
+        cmd = "sed -i 's/^chr//' " + str(pid) + ".gtf"
+        #cmd = "cut -c4- " + str(pid) + ".gtf > " + str(pid) + "_new.gtf"
+        print(cmd)
+        os.system(cmd)
+        #cmd = "mv " + str(pid) + "_new.gtf " + str(pid) + ".gtf"
+        #os.system(cmd)
+    cmd = "/data008/users/zyan/software/gffcompare/gffcompare -r " + ref_file + ' ./' + str(pid) + ".gtf"
+    print("Run gffcompare: \n")
+    print(cmd)
+    os.system(cmd)
+    cmd = "/data008/users/zyan/software/rnaseqtools-1.0.3/gtfcuff/gtfcuff auc ./" + 'gffcmp.' + str(pid) + ".gtf" + ".tmap " + str(num_transcripts)
     print("Run gtfcuff: \n")
     print(cmd)
     #pdb.set_trace()

@@ -1,0 +1,63 @@
+# parameters for running main.py
+main_args:
+  problem: 'Scallop'
+  max_iters: 150
+  lamda: 0.000001
+  batch_size: 1
+  n_trials: 20
+  n_init: 20
+  save_path: 'output/'
+  ard: False
+  cawarmup: 0
+  acq: ei
+  random_seed_objective: 20
+  debug: False
+  no_save: False
+  seed: None
+  kernel_type: None
+  infer_noise_var: False
+  bamid: ''
+  scallop_bam: ''
+  scallop_lib_type: 'empty'
+  scallop_ref: 'GRCh38'
+  scallop_path: ''
+  sub_sample: 1.0
+
+
+#initial command of assemble software
+scallop:
+  software: scallop
+  input_command: ' -i '
+  additional_command: ' --verbose 0 --min_transcript_coverage 0'
+
+
+#parameters for choosed software
+
+scallop_bounds:
+  - uniquely_mapped_only: {type: cag, min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1}
+  - use_second_alignment: {type: cag, min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1}
+  - max_dp_table_size: {type: int, min: 0, max: 100000, default: 10000, hard_min: 0, hard_max: float('inf')}
+  - max_edit_distance: {type: int, min: 0, max: 100, default: 10, hard_min: 0, hard_max: float('inf')}
+  - max_num_exons: {type: int, min: 0, max: 10000, default: 1000, hard_min: 0, hard_max: float('inf')}
+  - min_bundle_gap: {type: int , min: 0, max: 500, default: 50, hard_min: 0, hard_max: float('inf')}
+  - min_exon_length: {type: int , min: 0, max: 200, default: 20, hard_min: 0, hard_max: float('inf')}
+  - min_flank_length: {type: int , min: 0, max: 30, default: 3, hard_min: 0, hard_max: float('inf')}
+  - min_mapping_quality: {type: int , min: 0, max: 10, default: 1, hard_min: 0, hard_max: float('inf')}
+  - min_num_hits_in_bundle: {type: int , min: 0, max: 200, default: 20, hard_min: 0, hard_max: float('inf')}
+  - min_router_count: {type: int , min: 0, max: 10, default: 1, hard_min: 0, hard_max: float('inf')}
+  - min_splice_boundary_hits: {type: int , min: 0, max: 10, default: 1, hard_min: 0, hard_max: float('inf')}
+  - min_subregion_gap: {type: int , min: 0, max: 30, default: 3, hard_min: 0, hard_max: float('inf')}
+  - min_subregion_length: {type: int , min: 0, max: 150, default: 15, hard_min: 0, hard_max: float('inf')}
+  - min_transcript_length_base: {type: int , min: 0, max: 1500, default: 150, hard_min: 0, hard_max: float('inf')}
+  - min_transcript_length_increase: {type: int , min: 0, max: 500, default: 50, hard_min: 0, hard_max: float('inf')}
+  - max_intron_contamination_coverage: {type: float , min: 0.0, max: 20.0, default: 2.0, hard_min: 0, hard_max: float('inf')}
+  - min_subregion_overlap: {type: float , min: 0.0, max: 15.0, default: 1.5, hard_min: 0, hard_max: float('inf')}
+
+
+#working directory for eval software
+gffcompare:
+  directory: /data008/users/zyan/software/gffcompare/gffcompare
+  command: ' -r '
+gtfcuff:
+  directory: /data008/users/zyan/software/rnaseqtools-1.0.3/gtfcuff/gtfcuff
+  command: ' auc '
