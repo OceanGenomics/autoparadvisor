@@ -197,6 +197,7 @@ sub run_with_one_change{
       #}
 
       # Compute AUC
+      #TODO: change hard code
       if(`grep -c "^chr" $working_dir/$out_fname.gtf` > 0){
         system("sed -i 's/^chr//' $working_dir/$out_fname.gtf");
       }
