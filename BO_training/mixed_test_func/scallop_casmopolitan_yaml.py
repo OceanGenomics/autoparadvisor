@@ -25,22 +25,26 @@ def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,s
 
         #for category parameters
         if(parameter_name=='cag'): #TODO: change hard code
-            if(int(x[i])==0):
-                cmd += " --" + parameter_name + " false"
-            else:
-                cmd += " --" + parameter_name + " true"
-        #for int type parameter (continous)
+            if (parameter[parameter_name]['usage']=='TF'):
+                if(int(x[i])==0):
+                    cmd += parameter[parameter_name]['command'] + parameter_name + " false"
+                else:
+                    cmd += parameter[parameter_name]['command']  + parameter_name + " true"
+            elif (parameter[parameter_name]['usage']=='turn_on'):
+                if(int(x[i])==1):
+                    cmd += parameter[parameter_name]['command'] + parameter_name
+        #for continous type parameter (int)
         elif(parameter_type=='int'):
-            cmd += " --" + parameter_name + " " + str(int(x[i]))
-        #for float type parameter (continous)
+            cmd += parameter[parameter_name]['command']  + parameter_name + " " + str(int(x[i]))
+        #for continous type parameter (float)
         elif(parameter_type=='float'):
-            cmd += " --" + parameter_name + " " + str(x[i])
+            cmd += parameter[parameter_name]['command'] + parameter_name + " " + str(x[i])
 
     #comment out subsampling since its not used
     #if(subsamp<1): 
     #    cmd += " --subsampling " + str(subsamp)
     #TODO: change hard code
-    cmd +=" --library_type " + library_type
+    #cmd +=" --library_type " + library_type
     #commands for output, should be same within other software
     cmd +=" -o ./" + str(pid) + ".gtf" + " > /dev/null 2>&1"
     print(f"Run scallop with the following command: \n {cmd}")
@@ -161,8 +165,9 @@ class Scallop(TestFunction):
         self.lb = np.array(lb)
         self.ub = np.array(ub)
         
-        #TODO: not sure what is this hard code for and seems not used
-        self.n_vertices = np.array([2, 2])
+        #TODO: not sure what is this
+        #original code: self.vertices = np.array([2,2])
+        self.n_vertices = np.array(len(categorical_dims)*[2])
         self.config = self.n_vertices
         
         #self.lamda = lamda

@@ -70,7 +70,7 @@ for t in range(args.n_trials):
             'length_init_discrete': 20,
         }
     #TODO: what is kwargs fro? noise ratio?
-    elif args.problem == 'Scallop':
+    elif args.problem == 'Scallop' or args.problem == 'stringTie':
         f = Scallop(bam_file=args.scallop_bam,boundary_fold=0,ref_file=args.ref_file, \
             library_type=args.scallop_lib_type,problem=args.problem.lower())
         kwargs = {'failtol':18, 'guided_restart':False,'length_init_discrete':20, 'length_min':0.02}
