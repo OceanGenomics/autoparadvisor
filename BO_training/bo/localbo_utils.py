@@ -407,9 +407,7 @@ def interleaved_search(x_center, f: Callable,
 
     # select the initialising points for both the continuous and categorical variables and then hstack them together
     # x0_cat = np.array([deepcopy(sample_neighbour_ordinal(x_center[cat_dims], config)) for _ in range(n_restart)])
-    #x0_cat = np.array([deepcopy(random_sample_within_discrete_tr_ordinal(x_center[cat_dims], max_hamming_dist, config))
-    #                   for _ in range(n_restart)])
-    # x0_cat = np.array([deepcopy(x_center[cat_dims]) for _ in range(n_restart)])
+
     #for continuos parameters
     seed = np.random.randint(int(1e6))
     sobol = SobolEngine(len(cont_dims), scramble=True, seed=seed)
@@ -417,11 +415,10 @@ def interleaved_search(x_center, f: Callable,
     x0_cont = lb + (ub - lb) * x0_cont
     #add category parameters
     #fix case for no catagory data
-    if (len(cat_dims) == 0):
+    if len(cat_dims) == 0:
         x0 = x0_cont
     else:
-        x0_cat = np.array([deepcopy(random_sample_within_discrete_tr_ordinal(x_center[cat_dims], max_hamming_dist, config))
-                       for _ in range(n_restart)])
+        x0_cat = np.array([deepcopy(random_sample_within_discrete_tr_ordinal(x_center[cat_dims], max_hamming_dist, config)) for _ in range(n_restart)])
         x0 = np.hstack((x0_cat, x0_cont))
     tol = 100
     lb, ub = torch.tensor(lb, dtype=torch.float32), torch.tensor(ub, dtype=torch.float32)

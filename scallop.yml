@@ -1,0 +1,45 @@
+#the general usage of any assamble software
+#path/software [input_command <input.bam>] [other_options] [output_command <output.gtf>]
+command_format: ''
+
+#initial command of assemble software
+initial_command:
+  name: scallop
+  input_command: ' -i '
+  output_command: ' -o '
+  #software specific command
+  additional_command: ' --verbose 0 --min_transcript_coverage 0 --library_type empty'
+
+
+#parameters for choosed software
+#for catagory parameters, usage TF: 0 False 1 True / turn_on: 0 not use parameter 1 turn on parameter
+parameter_bounds:
+  - uniquely_mapped_only: {command: ' --', type: cag, usage: TF, min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1, step: 1}
+  - use_second_alignment: {command: ' --', type: cag, usage: TF, min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1, step: 1}
+  - max_dp_table_size: {command: ' --', type: int, min: 0, max: 100000, default: 10000, hard_min: 0, hard_max: float('inf'), step: 100000}
+  - max_edit_distance: {command: ' --', type: int, min: 0, max: 100, default: 10, hard_min: 0, hard_max: float('inf'), step: 20}
+  - max_num_exons: {command: ' --', type: int, min: 0, max: 10000, default: 1000, hard_min: 0, hard_max: float('inf'), step: 10000}
+  - min_bundle_gap: {command: ' --', type: int, min: 0, max: 500, default: 50, hard_min: 0, hard_max: float('inf'), step: 100}
+  - min_exon_length: {command: ' --', type: int, min: 0, max: 200, default: 20, hard_min: 0, hard_max: float('inf'), step: 100}
+  - min_flank_length: {command: ' --', type: int, min: 0, max: 30, default: 3, hard_min: 0, hard_max: float('inf'), step: 10}
+  - min_mapping_quality: {command: ' --', type: int, min: 0, max: 10, default: 1, hard_min: 0, hard_max: float('inf'), step: 10}
+  - min_num_hits_in_bundle: {command: ' --', type: int, min: 0, max: 200, default: 20, hard_min: 0, hard_max: float('inf'), step: 100}
+  - min_router_count: {command: ' --', type: int, min: 0, max: 10, default: 1, hard_min: 0, hard_max: float('inf'), step: 10}
+  - min_splice_boundary_hits: {command: ' --', type: int, min: 0, max: 10, default: 1, hard_min: 0, hard_max: float('inf'), step: 10}
+  - min_subregion_gap: {command: ' --', type: int, min: 0, max: 30, default: 3, hard_min: 0, hard_max: float('inf'), step: 10}
+  - min_subregion_length: {command: ' --', type: int, min: 0, max: 150, default: 15, hard_min: 0, hard_max: float('inf'), step: 20}
+  - min_transcript_length_base: {command: ' --', type: int, min: 0, max: 1500, default: 150, hard_min: 0, hard_max: float('inf'), step: 500}
+  - min_transcript_length_increase: {command: ' --', type: int, min: 0, max: 500, default: 50, hard_min: 0, hard_max: float('inf'), step: 100}
+  - max_intron_contamination_coverage: {command: ' --', type: float, min: 0.0, max: 20.0, default: 2.0, hard_min: 0, hard_max: float('inf'), step: 10}
+  - min_subregion_overlap: {command: ' --', type: float, min: 0.0, max: 15.0, default: 1.5, hard_min: 0, hard_max: float('inf'), step: 10}
+    
+
+
+#working directory for eval software
+#input the path for your installed path
+gffcompare:
+  directory: /data008/users/zyan/software/gffcompare/gffcompare
+  command: ' -r '
+gtfcuff:
+  directory: /data008/users/zyan/software/rnaseqtools-1.0.3/gtfcuff/gtfcuff
+  command: ' auc '

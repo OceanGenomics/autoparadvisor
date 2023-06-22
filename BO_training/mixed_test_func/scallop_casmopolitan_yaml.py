@@ -10,9 +10,9 @@ import yaml
 def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,software_path,docs,problem):
     pid = os.getpid()
     #initial command of choosen assemble software
-    software = docs['initial_command'][problem]
+    software = docs['initial_command']
     #parameters for choosen software
-    parameter_bounds = docs['parameter_bounds'][problem]
+    parameter_bounds = docs['parameter_bounds']
     cmd = software_path + software['name'] + software['input_command'] + \
          bam_file + software['additional_command']
 
@@ -24,20 +24,20 @@ def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,s
         parameter_type = parameter[parameter_name]['type']
 
         #for category parameters
-        if(parameter_name=='cag'): #TODO: change hard code
-            if (parameter[parameter_name]['usage']=='TF'):
-                if(int(x[i])==0):
+        if parameter_type=='cag': #TODO: change hard code
+            if parameter[parameter_name]['usage']=='TF':
+                if int(x[i])==0:
                     cmd += parameter[parameter_name]['command'] + parameter_name + " false"
                 else:
                     cmd += parameter[parameter_name]['command']  + parameter_name + " true"
-            elif (parameter[parameter_name]['usage']=='turn_on'):
-                if(int(x[i])==1):
+            elif parameter[parameter_name]['usage']=='turn_on':
+                if int(x[i])==1:
                     cmd += parameter[parameter_name]['command'] + parameter_name
         #for continous type parameter (int)
-        elif(parameter_type=='int'):
+        elif parameter_type=='int':
             cmd += parameter[parameter_name]['command']  + parameter_name + " " + str(int(x[i]))
         #for continous type parameter (float)
-        elif(parameter_type=='float'):
+        elif parameter_type=='float':
             cmd += parameter[parameter_name]['command'] + parameter_name + " " + str(x[i])
 
     #comment out subsampling since its not used
@@ -57,7 +57,7 @@ def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,s
     ref_cmd = "grep -c '^chr' "+ ref_file
     ref_chr_header = int(subprocess.getoutput(ref_cmd))
     print(f'number of transcript start with chr: {chr_header}')
-    if(ref_chr_header==0):
+    if ref_chr_header==0:
         cmd = "sed -i 's/^chr//' " + str(pid) + ".gtf"
         #cmd = "cut -c4- " + str(pid) + ".gtf > " + str(pid) + "_new.gtf"
         #print(cmd)
@@ -90,6 +90,7 @@ def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,s
 
 
 class Scallop(TestFunction):
+    #TODO: change this hard code later
     problem_type = 'mixed'
     def __init__(self, bam_file, normalize=False,boundary_fold = 0,ref_file='',library_type = 'empty',problem=''):
         super(Scallop,self).__init__(normalize)
@@ -101,13 +102,13 @@ class Scallop(TestFunction):
 
         #read in software usage and parameter from yaml file
         path = os.path.abspath(os.path.join(os.getcwd(),".."))
-        with open(path+'/setting.yml', 'r') as file:
+        with open(path+'/scallop.yml', 'r') as file:
             docs = yaml.safe_load(file)
             self.docs = docs
         #software contains a dict of basic use of specific parameters
         #parameter_bounds contain a list of tunable parameters
-        software = docs['initial_command'][problem]
-        parameter_bounds = docs['parameter_bounds'][problem] 
+        software = docs['initial_command']
+        parameter_bounds = docs['parameter_bounds']
         self.software = software
         self.parameter_bounds = parameter_bounds
 
