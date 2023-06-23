@@ -4,6 +4,10 @@ use warnings;
 use threads;
 use threads::shared;
 use Data::Dumper;
+#use YAML qw(LoadFile);
+use YAML::XS 'LoadFile';
+use Cwd qw(abs_path);
+
 
 # This directory where the files created during the CA process will be written and read.
 our $working_dir = shift;
@@ -55,73 +59,46 @@ my $old_working_dir = "";
 $old_working_dir = shift;
 chomp $old_working_dir;
 
+#adapted with yaml config file
+#get current path, read in yaml file
+my $path = abs_path();
+my $filename = $path .'/..'. ('/scallop.yml'); #change to config.yml later
+my $yaml = LoadFile($filename);
+
+#get paras
+our $name = $yaml->{initial_command}->{name};
+our $input_command = $yaml->{initial_command}->{input_command};
+our $output_command = $yaml->{initial_command}->{output_command};
+our $additional_command = $yaml->{initial_command}->{additional_command};
+
+my $gffcompare_path = $yaml->{gffcompare}->{directory};
+my $gffcompare_command = $yaml->{gffcompare}->{command};
+my $gtfcuff_path = $yaml->{gtfcuff}->{directory};
+my $gtfcuff_command = $yaml->{gtfcuff}->{command};
+
+#get parameter values/step/type
+our %parameter_values;
+our %step_size;
+our %type;
+our %command;
+
 # These are the default parameter values, the place to start the CA
 # each of the elements is a tuneable parameter for Scallop.
-# As CA progresses this hash also keeps track of the best parameter vector.
-our %parameter_values = (
-  "min_flank_length" => 3,
-  "max_edit_distance" => 10,
-  "min_bundle_gap" => 50,
-  "min_num_hits_in_bundle" => 20,
-  "min_mapping_quality" => 1,
-  "min_splice_boundary_hits" => 1,
-  "use_second_alignment" => 0, #true/false
-  "uniquely_mapped_only" => 0, #true/false
-  "min_subregion_gap" => 3,
-  "min_subregion_overlap" => 1.5, #real value
-  "min_subregion_length" => 15,
-  "max_intron_contamination_coverage" => 2.0, #real value
-  "min_transcript_length_base" => 150,
-  "min_transcript_length_increase" => 50,
-  "min_exon_length" => 20,
-  "max_num_exons" => 1000,
-  "max_dp_table_size" => 10000,
-  "min_router_count" => 1
-);
+my $parameter_bounds = $yaml->{parameter_bounds};
+foreach my $i (@{$parameter_bounds}){
+    while(my ($key, $value) = each %{$i}){
+        # As CA progresses this hash also keeps track of the best parameter vector
+        $parameter_values{$key} = $value->{default};
+        # This is the initial step size for each parameter, this will be slowly decreased
+        $step_size{$key} = $value->{step};
+        # This keeps track of the parameter type when decreasing the step size and stop conditions
+        $type{$key} = $value->{type};
+        # This keeps track of the parameter sign ' -' or ' --'
+        $command{$key} = $value->{command};
+    }
+}
 
-# This is the initial step size for each parameter, this will be slowly decreased
-our %step_size = (
-  "min_flank_length" => 10,
-  "max_edit_distance" => 20,
-  "min_bundle_gap" => 100,
-  "min_num_hits_in_bundle" => 100,
-  "min_mapping_quality" => 10,
-  "min_splice_boundary_hits" => 10,
-  "use_second_alignment" => 1, #true/false
-  "uniquely_mapped_only" => 1, #true/false
-  "min_subregion_gap" => 10,
-  "min_subregion_overlap" => 10, #real value
-  "min_subregion_length" => 20,
-  "max_intron_contamination_coverage" => 10, #real value
-  "min_transcript_length_base" => 500,
-  "min_transcript_length_increase" => 100,
-  "min_exon_length" => 100,
-  "max_num_exons" => 10000,
-  "max_dp_table_size" => 100000,
-  "min_router_count" => 10
-);
 
-# This keeps track of the parameter type when decreasing the step size and stop conditions
-our %type = (
-  "min_flank_length" => "int",
-  "max_edit_distance" => "int",
-  "min_bundle_gap" => "int",
-  "min_num_hits_in_bundle" => "int",
-  "min_mapping_quality" => "int",
-  "min_splice_boundary_hits" => "int",
-  "use_second_alignment" => "bool", #true/false
-  "uniquely_mapped_only" => "bool", #true/false
-  "min_subregion_gap" => "int",
-  "min_subregion_overlap" => "float", #real value
-  "min_subregion_length" => "int",
-  "max_intron_contamination_coverage" => "float", #real value
-  "min_transcript_length_base" => "int",
-  "min_transcript_length_increase" => "int",
-  "min_exon_length" => "int",
-  "max_num_exons" => "int",
-  "max_dp_table_size" => "int",
-  "min_router_count" => "int"
-);
 
 # This subroutine runs Scallop using the parameter vector stored in %parameter_values
 # with one parameter changed.
@@ -136,8 +113,9 @@ sub run_with_one_change{
   $check = shift;
 
   # "--min_transcript_coverage 0" sets allows the AUC to work on the quality threshold output by Scallop
-  my $command = "${scallop_path}scallop -i $experement_file --verbose 0 --min_transcript_coverage 0 --library_type $lib_type";
+  my $command = "${scallop_path}$name$input_command$experement_file$additional_command";
   my $out_fname = "";
+  #this only allow boolen case with 0,1
   return 0 if($param_value ne "" && (($type{$param_to_change} eq "bool" && $param_value > 1) || $param_value < 0));
 
   # ensures the floating point parameters don't get too complex
@@ -145,20 +123,21 @@ sub run_with_one_change{
     $param_value = sprintf("%.2f", $param_value);
   }
 
-  # builds the command line and output file name from the parameter vector, including the parameter to chainge.
+  # builds the command line and output file name from the parameter vector, including the parameter to change.
   for my $p (sort keys(%type)){
     if($p ne $param_to_change){
       if($type{$p} ne "bool"){
-        $command .= " --$p $parameter_values{$p} ";
+        $command .= "$command{$p}$p $parameter_values{$p} ";
       }else{
-        $command .= " --$p ".(($parameter_values{$p}==1)?"true":"false");
+        #this only allow true/ false
+        $command .= "$command{$p} ".(($parameter_values{$p}==1)?"true":"false");
       }
       $out_fname .= "_$parameter_values{$p}";
     }else{
         if($type{$p} ne "bool"){
-          $command .= " --$p $param_value ";
+          $command .= "$command{$p} $param_value ";
         }else{
-          $command .= " --$p ".(($param_value==1)?"true":"false");
+          $command .= "$command{$p} ".(($param_value==1)?"true":"false");
         }
         $out_fname .= "_$param_value";
     }
@@ -171,6 +150,7 @@ sub run_with_one_change{
   #return 0;
   system("mkdir -p $working_dir");
 
+  #TODO: leave this two conditions unchanged
   # if AUC is already computed return it rather than rerunning Scallop
   if(-e "$working_dir/$out_fname.auc" && `grep -c auc $working_dir/$out_fname.auc` > 0){
     $auc = `cat $working_dir/$out_fname.auc`;
@@ -197,10 +177,11 @@ sub run_with_one_change{
       #}
 
       # Compute AUC
-      if(`grep -c "^chr" $working_dir/$out_fname.gtf` > 0){
+      #TODO: change hard code
+      if(`grep -c "^chr" $working_dir/$out_fname.gtf` > 0 && `grep -c "^chr" $ref_file` == 0){
         system("sed -i 's/^chr//' $working_dir/$out_fname.gtf");
       }
-      system("/data008/users/zyan/software/gffcompare/gffcompare -r $ref_file -o $working_dir/$out_fname $working_dir/$out_fname.gtf");
+      system("$gffcompare_path$gffcompare_command$ref_file -o $working_dir/$out_fname $working_dir/$out_fname.gtf");
       if((-e "$working_dir/$out_fname.$out_fname.gtf.tmap")){
         # $num_transcripts should match the number of transcripts in the reference
         #if($ref_type eq "GRCh37"){
@@ -208,9 +189,12 @@ sub run_with_one_change{
         #}else{
         #  my $num_transcripts = ;
         #}
-        my $num_transcripts = 197649;
+        #get number of reference transcript for future gftcuff
+        my $get_transcript = "cat $ref_file | awk \'{print \$3}\' | grep -c transcript";
+        my $num_transcripts = `$get_transcript`;
+        #my $num_transcripts = 229580;
 
-        $auc = `/data008/users/zyan/software/rnaseqtools-1.0.3/gtfcuff/gtfcuff auc $working_dir/$out_fname.$out_fname.gtf.tmap $num_transcripts | tee $working_dir/$out_fname.auc`;
+        $auc = `$gtfcuff_path$gtfcuff_command$working_dir/$out_fname.$out_fname.gtf.tmap $num_transcripts | tee $working_dir/$out_fname.auc`;
         system("rm $working_dir/$out_fname.$out_fname.gtf.refmap $working_dir/$out_fname.loci $working_dir/$out_fname.annotated.gtf $working_dir/$out_fname.tracking");
         system("gzip $working_dir/$out_fname.gtf");
       }else{

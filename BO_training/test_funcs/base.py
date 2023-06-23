@@ -37,6 +37,10 @@ class TestFunction:
     @abstractmethod
     def compute(self, x, normalize=None):
         raise NotImplementedError()
+        
+    @abstractmethod
+    def read_warmup_info(self, filepath):
+        raise NotImplementedError()
 
     def sample_normalize(self, size=None):
         if size is None:

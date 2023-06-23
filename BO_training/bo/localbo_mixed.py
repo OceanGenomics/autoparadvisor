@@ -123,7 +123,8 @@ class CASMOPOLITANMixed(CASMOPOLITANCat):
             gp = train_gp(
                 train_x=X_torch, train_y=y_torch, use_ard=self.use_ard, num_steps=n_training_steps, hypers=hypers,
                 kern=self.kernel_type,
-                cat_dims=self.cat_dims, cont_dims=self.cont_dims,
+                cat_dims=self.cat_dims, 
+                cont_dims=self.cont_dims,
                 int_constrained_dims=self.int_constrained_dims,
                 noise_variance=self.kwargs['noise_variance'] if 'noise_variance' in self.kwargs else None,
                 cont_lb = self.lb,

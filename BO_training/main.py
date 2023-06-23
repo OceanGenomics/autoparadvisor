@@ -13,7 +13,7 @@ import yaml
 
 # Set up the objective function
 parser = argparse.ArgumentParser('Run Experiments')
-parser.add_argument('-p', '--problem', type=str, default='pest')
+parser.add_argument('-p', '--problem', type=str, default='pest', help='current choose can be scallop or stringtie')
 parser.add_argument('--max_iters', type=int, default=150, help='Maximum number of BO iterations.')
 parser.add_argument('--lamda', type=float, default=1e-6, help='the noise to inject for some problems')
 parser.add_argument('--batch_size', type=int, default=1, help='batch size for BO.')
@@ -36,6 +36,7 @@ parser.add_argument('--scallop_lib_type',type=str,default='empty',help='library 
 parser.add_argument('--scallop_ref',type=str,default='GRCh38',help='reference name of the Scallop input')
 parser.add_argument('--scallop_path',type=str,default='',help='The path of the software scallop')
 parser.add_argument('--sub_sample',type=float,default=1.0,help='Sampling rate of the scallop')
+parser.add_argument('--ref_file',type=str,default='',help='reference file for assembler software, gtf format')
 
 args = parser.parse_args()
 options = vars(args)
@@ -52,6 +53,7 @@ assert args.acq in ['ucb', 'ei', 'thompson'], 'Unknown acquisition function choi
 if not os.path.exists(args.save_path):
     os.makedirs(args.save_path)
 
+
 for t in range(args.n_trials):
 
     kwargs = {}
@@ -67,8 +69,10 @@ for t in range(args.n_trials):
             'length_max_discrete': 25,
             'length_init_discrete': 20,
         }
-    elif args.problem == 'Scallop':
-        f = Scallop(args.scallop_bam,boundary_fold = 0,ref_file="/biodb/human/gencode/v35/gene_annotations.gtf",library_type=args.scallop_lib_type)
+    #TODO: what is kwargs fro? noise ratio?
+    elif args.problem == 'Scallop' or args.problem == 'stringTie':
+        f = Scallop(bam_file=args.scallop_bam,boundary_fold=0,ref_file=args.ref_file, \
+            library_type=args.scallop_lib_type,problem=args.problem.lower())
         kwargs = {'failtol':18, 'guided_restart':False,'length_init_discrete':20, 'length_min':0.02}
     elif args.problem == 'func2C':
         f = Func2C(lamda=args.lamda)
@@ -115,12 +119,14 @@ for t in range(args.n_trials):
 
     if args.cawarmup > 0:
         if(args.sub_sample<1):
-            cmd = 'perl ca_warmup.pl ./warmup_' + args.bamid + "_subsample_" + str(args.sub_sample) + " " + f.bam_file + " " + f.library_type + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.scallop_path + " " + str(args.sub_sample)
+            cmd = 'perl ca_warmup.pl ./warmup_' + args.bamid + "_subsample_" + str(args.sub_sample) + \
+                 " " + f.bam_file + " " + f.library_type + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.scallop_path + " " + str(args.sub_sample)
         else:
-            cmd = 'perl ca_warmup.pl ./warmup_' + args.bamid + "_subsample_" + str(args.sub_sample) + " " + f.bam_file + " " + f.library_type + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.scallop_path
+            cmd = 'perl ca_warmup.pl ./warmup_' + args.bamid + "_subsample_" + str(args.sub_sample) + \
+                 " " + f.bam_file + " " + f.library_type + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.scallop_path
         print(cmd)
         os.system(cmd)
-        x_next,y_next = read_warmup_info("./warmup_" + args.bamid + "_subsample_" + str(args.sub_sample) + "/")
+        x_next,y_next = f.read_warmup_info("./warmup_" + args.bamid + "_subsample_" + str(args.sub_sample) + "/")
         #adjust the search space
         #pdb.set_trace()
         f.ub = np.maximum(x_next[np.array(y_next).argmin()][2:]*2,f.ub)

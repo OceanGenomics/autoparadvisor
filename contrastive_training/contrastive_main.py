@@ -49,7 +49,7 @@ training_size = 1263
 #input_mash_mat = torch.from_numpy(input_mash_mat_np).to(dtype=dtype,device=device)
 #data_size = input_mash_mat.shape[0]
 
-input_mash_mat_subsample_np = np.load("/contrastive_training/input_features.npy")
+input_mash_mat_subsample_np = np.load("C:/Users/Zhiwen Yan/Desktop/23summer/input_features.npy")
 input_mash_mat_subsample = torch.from_numpy(input_mash_mat_subsample_np).to(dtype=dtype,device=device)
 
 input_mash_mat_np = input_mash_mat_subsample_np[np.arange(training_size)*8+7]
@@ -57,7 +57,7 @@ input_mash_mat = torch.from_numpy(input_mash_mat_np).to(dtype=dtype,device=devic
 data_size = input_mash_mat.shape[0]
 
 #similarity matrix
-sim_mat_np = np.load("similarity_mat.npy")
+sim_mat_np = np.load("C:/Users/Zhiwen Yan/Desktop/23summer/similarity_mat.npy")
 #data_size = sim_mat_np.shape[0]
 sim_mat_np = (np.ones((data_size,data_size))-np.eye(data_size))*sim_mat_np
 sim_mat_np = sim_mat_np/sim_mat_np.max()
@@ -65,7 +65,7 @@ sim_mat = torch.from_numpy(sim_mat_np).to(dtype=dtype,device=device)
 assert data_size == sim_mat.shape[0]
 
 #similarity matrix with subsampling
-sim_mat_subsample_np = np.load("similarity_mat_subsample.npy")
+sim_mat_subsample_np = np.load("C:/Users/Zhiwen Yan/Desktop/23summer/similarity_mat_subsample.npy")
 sim_mat_subsample_np = (np.ones((sim_mat_subsample_np.shape[0],sim_mat_subsample_np.shape[0]))-np.eye(sim_mat_subsample_np.shape[0]))*sim_mat_subsample_np
 sim_mat_subsample_np = sim_mat_subsample_np/sim_mat_subsample_np.max()
 sim_mat_subsample = torch.from_numpy(sim_mat_subsample_np).to(dtype=dtype,device=device)
@@ -92,6 +92,7 @@ validation_input = input_mash_mat[validation_set]
 print(validation_input.shape)
 '''
 
+'''
 sample_list = []
 with open("../representative_sample_accesion_number","rt")as f:
     freader = csv.reader(f,delimiter='\t')
@@ -99,7 +100,7 @@ with open("../representative_sample_accesion_number","rt")as f:
         sample_list.append(line[0])
 
 assert len(sample_list)==training_size
-
+'''
 
 #set model
 lmda = args.lmda
@@ -128,11 +129,12 @@ loss_list = []
 #training loop
 #pdb.set_trace()
 if use_subsample==1:
-    cmd = "mkdir -p ./contrastive_vali_figures_"+str(training_size)+"_lmda_"+lmda_str+"_beta_"+beta_str+"_mode_"+args.mode+"_temp_"+str(args.temperature)+"_wdecay_"+str(args.weightdecay)+"_subsample"
+    cmd = "mkdir -p .\contrastive_vali_figures_"+str(training_size)+"_lmda_"+lmda_str+"_beta_"+beta_str+"_mode_"+args.mode+"_temp_"+str(args.temperature)+"_wdecay_"+str(args.weightdecay)+"_subsample"
     output_path = "./contrastive_vali_figures_"+str(training_size)+"_lmda_"+lmda_str+"_beta_"+beta_str+"_mode_"+args.mode+"_temp_"+str(args.temperature)+"_wdecay_"+str(args.weightdecay)+"_subsample/"
 else:
-    cmd = "mkdir -p ./contrastive_vali_figures_"+str(training_size)+"_lmda_"+lmda_str+"_beta_"+beta_str+"_mode_"+args.mode+"_temp_"+str(args.temperature)+"_wdecay_"+str(args.weightdecay)
+    cmd = "mkdir -p .\contrastive_vali_figures_"+str(training_size)+"_lmda_"+lmda_str+"_beta_"+beta_str+"_mode_"+args.mode+"_temp_"+str(args.temperature)+"_wdecay_"+str(args.weightdecay)
     output_path = "./contrastive_vali_figures_"+str(training_size)+"_lmda_"+lmda_str+"_beta_"+beta_str+"_mode_"+args.mode+"_temp_"+str(args.temperature)+"_wdecay_"+str(args.weightdecay)+"/"
+print(cmd)
 os.system(cmd)
 for epoch in tqdm.tqdm(range(epochs)):
     #pdb.set_trace()
