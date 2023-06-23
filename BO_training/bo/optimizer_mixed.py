@@ -154,7 +154,7 @@ class MixedOptimizer(Optimizer):
                 )
                 X_init_cat.append(cat_sample)
             X_init_cat = np.array(X_init_cat)
-            #DONE: change stack manar into insert
+            #DONE: change stack manar into insert according to dim of cat
             #self.X_init = np.hstack((X_init_cat, X_init_cont))
             col = 0
             for i in self.d_cat:
@@ -179,7 +179,7 @@ class MixedOptimizer(Optimizer):
                 X_init_cat = self.warp_discrete(X_init_cat, )
             X_init_cat = onehot2ordinal(X_init_cat, self.cat_dims)
             # Put the two parts back by a hstack
-            #TODO: change stack manar into insert and support any order of catgory data 
+            #DONE: change stack manar into insert according to dim of cat 
             #self.X_init = np.hstack((X_init_cat, X_init_cont))
             col = 0
             for i in self.d_cat:

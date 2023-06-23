@@ -1,3 +1,6 @@
 contrastive_training/input_features.npy
 contrastive_training/similarity_mat_subsample.npy
 contrastive_training/similarity_mat.npy
+test.cpp
+setting.yml
+BO_training/dataReader.pl

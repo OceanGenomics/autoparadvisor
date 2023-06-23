@@ -62,7 +62,7 @@ chomp $old_working_dir;
 #adapted with yaml config file
 #get current path, read in yaml file
 my $path = abs_path();
-my $filename = $path . ('/scallop.yml'); #change to config.yml later
+my $filename = $path .'/..'. ('/scallop.yml'); #change to config.yml later
 my $yaml = LoadFile($filename);
 
 #get paras
@@ -71,10 +71,10 @@ our $input_command = $yaml->{initial_command}->{input_command};
 our $output_command = $yaml->{initial_command}->{output_command};
 our $additional_command = $yaml->{initial_command}->{additional_command};
 
-my $gffcompare_path = $yaml->{gffcompare}->{directory}
-my $gffcompare_command = $yaml->{gffcompare}->{command}
-my $gtfcuff_path = $yaml->{gftcuff}->{directory}
-my $gtfcuff_command = $yaml->{gftcuff}->{command}
+my $gffcompare_path = $yaml->{gffcompare}->{directory};
+my $gffcompare_command = $yaml->{gffcompare}->{command};
+my $gtfcuff_path = $yaml->{gtfcuff}->{directory};
+my $gtfcuff_command = $yaml->{gtfcuff}->{command};
 
 #get parameter values/step/type
 our %parameter_values;
@@ -127,7 +127,7 @@ sub run_with_one_change{
   for my $p (sort keys(%type)){
     if($p ne $param_to_change){
       if($type{$p} ne "bool"){
-        $command .= "$command{$p} $p $parameter_values{$p} ";
+        $command .= "$command{$p}$p $parameter_values{$p} ";
       }else{
         #this only allow true/ false
         $command .= "$command{$p} ".(($parameter_values{$p}==1)?"true":"false");
@@ -190,13 +190,13 @@ sub run_with_one_change{
         #  my $num_transcripts = ;
         #}
         #get number of reference transcript for future gftcuff
-        my $get_transcript = 'cat ' + $ref_file + ' | awk \'{print $3}\' | grep -c transcript'
-        my $num_transcripts = `$get_transcript`
+        my $get_transcript = "cat $ref_file | awk \'{print \$3}\' | grep -c transcript";
+        my $num_transcripts = `$get_transcript`;
         #my $num_transcripts = 229580;
 
         $auc = `$gtfcuff_path$gtfcuff_command$working_dir/$out_fname.$out_fname.gtf.tmap $num_transcripts | tee $working_dir/$out_fname.auc`;
         system("rm $working_dir/$out_fname.$out_fname.gtf.refmap $working_dir/$out_fname.loci $working_dir/$out_fname.annotated.gtf $working_dir/$out_fname.tracking");
-        system("gzip $working_dir/$out_fname.gtf")
+        system("gzip $working_dir/$out_fname.gtf");
       }else{
         # the tmap file wasn't created, this is an error.
         return 0;
