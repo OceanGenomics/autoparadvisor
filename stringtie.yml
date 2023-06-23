@@ -4,26 +4,26 @@ command_format: ''
 
 
 #initial command of assemble software
-initial_command:
+initial_option:
   name: stringtie
-  input_command: ' '
-  output_command: ' -o '
+  input_option: ' '
+  output_option: ' -o '
   #software specific command
-  additional_command: ''
+  additional_option: ''
 
 
 #parameters for choosed software
 #for catagory parameters, usage TF: 0 False 1 True / turn_on: 0 not use parameter 1 turn on parameter
 parameter_bounds:
-  - f: {command: ' -', type: float, min: 0.0, max: 0.999, default: 0.01, hard_min: 0, hard_max: float('inf')}
-  - m: {command: ' -', type: int, min: 30, max: 1000, default: 200, hard_min: 0, hard_max: float('inf')}
-  - a: {command: ' -', type: int, min: 0, max: 100, default: 10, hard_min: 0, hard_max: float('inf')}
-  - j: {command: ' -', type: float, min: 0.01, max: 20, default: 1, hard_min: 0, hard_max: float('inf')}
-  - c: {command: ' -', type: float, min: 0.0, max: 10.0, default: 1.0, hard_min: 0, hard_max: float('inf')}
-  - s: {command: ' -', type: float, min: 0.0, max: 30.0, default: 4.75, hard_min: 0, hard_max: float('inf')}
-  - g: {command: ' -', type: int, min: 0, max: 100, default: 50, hard_min: 0, hard_max: float('inf')}
-  - M: {command: ' -', type: float, min: 0.0, max: 0.999, default: 0.95, hard_min: 0, hard_max: float('inf')}
-  - u: {command: ' -', type: cag, usage: turn_on, min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1}
+  - f: {prefix: ' -', type: float, min: 0.0, max: 0.999, default: 0.01, hard_min: 0, hard_max: float('inf')}
+  - m: {prefix: ' -', type: int, min: 30, max: 1000, default: 200, hard_min: 0, hard_max: float('inf')}
+  - a: {prefix: ' -', type: int, min: 0, max: 100, default: 10, hard_min: 0, hard_max: float('inf')}
+  - j: {prefix: ' -', type: float, min: 0.01, max: 20, default: 1, hard_min: 0, hard_max: float('inf')}
+  - c: {prefix: ' -', type: float, min: 0.0, max: 10.0, default: 1.0, hard_min: 0, hard_max: float('inf')}
+  - s: {prefix: ' -', type: float, min: 0.0, max: 30.0, default: 4.75, hard_min: 0, hard_max: float('inf')}
+  - g: {prefix: ' -', type: int, min: 0, max: 100, default: 50, hard_min: 0, hard_max: float('inf')}
+  - M: {prefix: ' -', type: float, min: 0.0, max: 0.999, default: 0.95, hard_min: 0, hard_max: float('inf')}
+  - u: {prefix: ' -', type: cag, usage: turn_on, min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1}
     
     
 

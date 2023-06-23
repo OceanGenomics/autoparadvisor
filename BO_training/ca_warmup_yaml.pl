@@ -4,7 +4,6 @@ use warnings;
 use threads;
 use threads::shared;
 use Data::Dumper;
-#use YAML qw(LoadFile);
 use YAML::XS 'LoadFile';
 use Cwd qw(abs_path);
 
@@ -66,17 +65,17 @@ my $filename = $path .'/..'. ('/scallop.yml'); #change to config.yml later
 my $yaml = LoadFile($filename);
 
 #get paras
-our $name = $yaml->{initial_command}->{name};
-our $input_command = $yaml->{initial_command}->{input_command};
-our $output_command = $yaml->{initial_command}->{output_command};
-our $additional_command = $yaml->{initial_command}->{additional_command};
+our $name = $yaml->{initial_option}->{name};
+our $input_command = $yaml->{initial_option}->{input_option};
+our $output_command = $yaml->{initial_option}->{output_option};
+our $additional_command = $yaml->{initial_option}->{additional_option};
 
 my $gffcompare_path = $yaml->{gffcompare}->{directory};
 my $gffcompare_command = $yaml->{gffcompare}->{command};
 my $gtfcuff_path = $yaml->{gtfcuff}->{directory};
 my $gtfcuff_command = $yaml->{gtfcuff}->{command};
 
-#get parameter values/step/type
+#get parameter values/step/type/prefix
 our %parameter_values;
 our %step_size;
 our %type;
@@ -126,7 +125,7 @@ sub run_with_one_change{
   # builds the command line and output file name from the parameter vector, including the parameter to change.
   for my $p (sort keys(%type)){
     if($p ne $param_to_change){
-      if($type{$p} ne "bool"){
+      if($type{$p} ne "cag"){
         $command .= "$command{$p}$p $parameter_values{$p} ";
       }else{
         #this only allow true/ false
@@ -134,7 +133,7 @@ sub run_with_one_change{
       }
       $out_fname .= "_$parameter_values{$p}";
     }else{
-        if($type{$p} ne "bool"){
+        if($type{$p} ne "cag"){
           $command .= "$command{$p} $param_value ";
         }else{
           $command .= "$command{$p} ".(($param_value==1)?"true":"false");
@@ -190,8 +189,9 @@ sub run_with_one_change{
         #  my $num_transcripts = ;
         #}
         #get number of reference transcript for future gftcuff
-        my $get_transcript = "cat $ref_file | awk \'{print \$3}\' | grep -c transcript";
+        my $get_transcript = `cat $ref_file | awk \'{print \$3}\' | grep -c transcript`;
         my $num_transcripts = `$get_transcript`;
+        print 'number of transcripts:'.$num_transcripts;
         #my $num_transcripts = 229580;
 
         $auc = `$gtfcuff_path$gtfcuff_command$working_dir/$out_fname.$out_fname.gtf.tmap $num_transcripts | tee $working_dir/$out_fname.auc`;

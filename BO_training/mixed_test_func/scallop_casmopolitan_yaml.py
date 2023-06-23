@@ -10,11 +10,11 @@ import yaml
 def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,software_path,docs,problem):
     pid = os.getpid()
     #initial command of choosen assemble software
-    software = docs['initial_command']
+    software = docs['initial_option']
     #parameters for choosen software
     parameter_bounds = docs['parameter_bounds']
-    cmd = software_path + software['name'] + software['input_command'] + \
-         bam_file + software['additional_command']
+    cmd = software_path + software['name'] + software['input_option'] + \
+         bam_file + software['additional_option']
 
     #for optional parameter choosing
     for i in range(x.shape[0]):
@@ -27,18 +27,18 @@ def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,s
         if parameter_type=='cag': #TODO: change hard code
             if parameter[parameter_name]['usage']=='TF':
                 if int(x[i])==0:
-                    cmd += parameter[parameter_name]['command'] + parameter_name + " false"
+                    cmd += parameter[parameter_name]['prefix'] + parameter_name + " false"
                 else:
-                    cmd += parameter[parameter_name]['command']  + parameter_name + " true"
+                    cmd += parameter[parameter_name]['prefix']  + parameter_name + " true"
             elif parameter[parameter_name]['usage']=='turn_on':
                 if int(x[i])==1:
-                    cmd += parameter[parameter_name]['command'] + parameter_name
+                    cmd += parameter[parameter_name]['prefix'] + parameter_name
         #for continous type parameter (int)
         elif parameter_type=='int':
-            cmd += parameter[parameter_name]['command']  + parameter_name + " " + str(int(x[i]))
+            cmd += parameter[parameter_name]['prefix']  + parameter_name + " " + str(int(x[i]))
         #for continous type parameter (float)
         elif parameter_type=='float':
-            cmd += parameter[parameter_name]['command'] + parameter_name + " " + str(x[i])
+            cmd += parameter[parameter_name]['prefix'] + parameter_name + " " + str(x[i])
 
     #comment out subsampling since its not used
     #if(subsamp<1): 
@@ -107,7 +107,7 @@ class Scallop(TestFunction):
             self.docs = docs
         #software contains a dict of basic use of specific parameters
         #parameter_bounds contain a list of tunable parameters
-        software = docs['initial_command']
+        software = docs['initial_option']
         parameter_bounds = docs['parameter_bounds']
         self.software = software
         self.parameter_bounds = parameter_bounds
