@@ -120,16 +120,20 @@ for t in range(args.n_trials):
     if args.cawarmup > 0:
         if(args.sub_sample<1):
             cmd = 'perl ca_warmup.pl ./warmup_' + args.bamid + "_subsample_" + str(args.sub_sample) + \
-                 " " + f.bam_file + " " + f.library_type + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.scallop_path + " " + str(args.sub_sample)
+                 " " + f.bam_file + " " + f.num_transcripts + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.scallop_path + " " + str(args.sub_sample)
         else:
             cmd = 'perl ca_warmup.pl ./warmup_' + args.bamid + "_subsample_" + str(args.sub_sample) + \
-                 " " + f.bam_file + " " + f.library_type + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.scallop_path
+                 " " + f.bam_file + " " + f.num_transcripts + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.scallop_path
         print(cmd)
         os.system(cmd)
         x_next,y_next = f.read_warmup_info("./warmup_" + args.bamid + "_subsample_" + str(args.sub_sample) + "/")
         #adjust the search space
         #pdb.set_trace()
-        f.ub = np.maximum(x_next[np.array(y_next).argmin()][2:]*2,f.ub)
+        x_next_min = x_next[np.array(y_next).argmin()]
+        x_next_cont = np.array([])
+        for idx, val in enumerate(f.continuous_dims):
+            x_next_cont = np.append(x_next_cont, x_next_min[val])
+        f.ub = np.maximum(x_next_cont*2,f.ub)
         #pdb.set_trace()
 
     if problem_type == 'mixed':

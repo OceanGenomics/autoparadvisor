@@ -17,9 +17,9 @@ our $experement_file = shift;
 chomp $experement_file;
 
 # This is the input Library type of aligned reads
-my $lib_type = "empty";
-$lib_type = shift;
-chomp $lib_type;
+my $num_transcripts = 229580;
+$num_transcripts = shift;
+chomp $num_transcripts;
 
 # This is the reference type of aligned reads
 my $ref_file = "/biodb/human/gencode/v35/gene_annotations.gtf";
@@ -79,7 +79,8 @@ my $gtfcuff_command = $yaml->{gtfcuff}->{command};
 our %parameter_values;
 our %step_size;
 our %type;
-our %command;
+our %prefix;
+our %usage;
 
 # These are the default parameter values, the place to start the CA
 # each of the elements is a tuneable parameter for Scallop.
@@ -93,7 +94,11 @@ foreach my $i (@{$parameter_bounds}){
         # This keeps track of the parameter type when decreasing the step size and stop conditions
         $type{$key} = $value->{type};
         # This keeps track of the parameter sign ' -' or ' --'
-        $command{$key} = $value->{command};
+        $prefix{$key} = $value->{prefix};
+        # This keeps track of specifc boolen type
+        if($type{$key} eq "cag"){
+          $usage{$key} = $value->{usage};
+        }
     }
 }
 
@@ -114,8 +119,8 @@ sub run_with_one_change{
   # "--min_transcript_coverage 0" sets allows the AUC to work on the quality threshold output by Scallop
   my $command = "${scallop_path}$name$input_command$experement_file$additional_command";
   my $out_fname = "";
-  #this only allow boolen case with 0,1
-  return 0 if($param_value ne "" && (($type{$param_to_change} eq "bool" && $param_value > 1) || $param_value < 0));
+  # if catagory parameter less than 0 or larger than 1, reject
+  return 0 if($param_value ne "" && (($type{$param_to_change} eq "cag" && $param_value > 1) || $param_value < 0));
 
   # ensures the floating point parameters don't get too complex
   if($type{$param_to_change} eq "float"){
@@ -125,18 +130,28 @@ sub run_with_one_change{
   # builds the command line and output file name from the parameter vector, including the parameter to change.
   for my $p (sort keys(%type)){
     if($p ne $param_to_change){
+      # for parameters not changed in this loop
       if($type{$p} ne "cag"){
-        $command .= "$command{$p}$p $parameter_values{$p} ";
+        $command .= "$prefix{$p}$p $parameter_values{$p}";
       }else{
-        #this only allow true/ false
-        $command .= "$command{$p} ".(($parameter_values{$p}==1)?"true":"false");
+        #TODO: hard code for two cases of bool type now
+        if($usage{$p} eq "TF"){
+          $command .= "$prefix{$p}$p ".(($parameter_values{$p}==1)?"true":"false");
+        }elsif($usage{$p} eq "turn_on" && ($parameter_values{$p}==1)){
+          $command .= "$prefix{$p}$p";
+        }
       }
       $out_fname .= "_$parameter_values{$p}";
     }else{
+        # for parameters changed in this loop
         if($type{$p} ne "cag"){
-          $command .= "$command{$p} $param_value ";
+          $command .= "$prefix{$p}$p $param_value";
         }else{
-          $command .= "$command{$p} ".(($param_value==1)?"true":"false");
+          if($usage{$p} eq "TF"){
+            $command .= "$prefix{$p}$p ".(($param_value==1)?"true":"false");
+          }elsif($usage{$p} eq "turn_on" && ($param_value==1)){
+            $command .= "$prefix{$p}$p";
+          }
         }
         $out_fname .= "_$param_value";
     }
@@ -176,22 +191,15 @@ sub run_with_one_change{
       #}
 
       # Compute AUC
-      #TODO: change hard code
       if(`grep -c "^chr" $working_dir/$out_fname.gtf` > 0 && `grep -c "^chr" $ref_file` == 0){
         system("sed -i 's/^chr//' $working_dir/$out_fname.gtf");
       }
       system("$gffcompare_path$gffcompare_command$ref_file -o $working_dir/$out_fname $working_dir/$out_fname.gtf");
       if((-e "$working_dir/$out_fname.$out_fname.gtf.tmap")){
         # $num_transcripts should match the number of transcripts in the reference
-        #if($ref_type eq "GRCh37"){
-        #  my $num_transcripts = ;
-        #}else{
-        #  my $num_transcripts = ;
-        #}
-        #get number of reference transcript for future gftcuff
-        my $get_transcript = `cat $ref_file | awk \'{print \$3}\' | grep -c transcript`;
-        my $num_transcripts = `$get_transcript`;
-        print 'number of transcripts:'.$num_transcripts;
+        #my $get_transcript = "cat $ref_file | awk \'{print \$3}\' | grep -c transcript";
+        #my $num_transcripts = `$get_transcript`;
+        #print 'number of ref transcripts:'.$num_transcripts;
         #my $num_transcripts = 229580;
 
         $auc = `$gtfcuff_path$gtfcuff_command$working_dir/$out_fname.$out_fname.gtf.tmap $num_transcripts | tee $working_dir/$out_fname.auc`;
@@ -250,6 +258,7 @@ while($decreased_steps == 1){
           my @nothreads;
           my @nothreads_index;
           foreach my $t(1...$num_threads){
+            #increase parameter case
             if(run_with_one_change($param, $parameter_values{$param} + ($t * $step_size{$param}),"check") == 0){
               push @threads, threads->new (sub { return run_with_one_change($param, $parameter_values{$param} + ($t * $step_size{$param}),""); } );
               push @threads_index, $t;
@@ -260,6 +269,7 @@ while($decreased_steps == 1){
             }
           }
           foreach my $t(1...$num_threads){
+            #decrease parameter case
             if(run_with_one_change($param, $parameter_values{$param} - ($t * $step_size{$param}),"check") == 0){
               push @threads, threads->new (sub { run_with_one_change($param, $parameter_values{$param} - ($t * $step_size{$param}),""); } );
               push @threads_index, -1 * $t;
