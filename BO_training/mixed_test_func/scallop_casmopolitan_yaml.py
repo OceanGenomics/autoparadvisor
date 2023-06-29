@@ -9,9 +9,10 @@ import yaml
 
 def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,software_path,docs,problem):
     pid = os.getpid()
+    #NOTE: original scallop_bounds list is moved into YAML file
     #initial command of choosen assemble software
     software = docs['initial_option']
-    #parameters for choosen software
+    #initial parameters for choosen software
     parameter_bounds = docs['parameter_bounds']
     cmd = software_path + software['name'] + software['input_option'] + \
          bam_file + software['additional_option']
@@ -24,7 +25,10 @@ def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,s
         parameter_type = parameter[parameter_name]['type']
 
         #for category parameters
-        if parameter_type=='cag': #TODO: change hard code
+        #NOTE: for now binary parameters are divided into two cases
+        #TF stands for True/False usage (in scallop)
+        #turn_on stands for use/not use usage (in stringtie)
+        if parameter_type=='cag': 
             if parameter[parameter_name]['usage']=='TF':
                 if int(x[i])==0:
                     cmd += parameter[parameter_name]['prefix'] + parameter_name + " false"
@@ -40,12 +44,13 @@ def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,s
         elif parameter_type=='float':
             cmd += parameter[parameter_name]['prefix'] + parameter_name + " " + str(x[i])
 
-    #comment out subsampling since its not used
+    #NOTE: comment out subsampling since its not used
     #if(subsamp<1): 
     #    cmd += " --subsampling " + str(subsamp)
-    #TODO: change hard code
+    #NOTE: library_type is moved into YAML config
     #cmd +=" --library_type " + library_type
     #commands for output, should be same within other software
+    #TODO: maybe need to generalize later
     cmd +=" -o ./" + str(pid) + ".gtf" + " > /dev/null 2>&1"
     print(f"Run scallop with the following command: \n {cmd}")
     os.system(cmd)
@@ -57,6 +62,7 @@ def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,s
     ref_cmd = "grep -c '^chr' "+ ref_file
     ref_chr_header = int(subprocess.getoutput(ref_cmd))
     print(f'number of transcript start with chr: {chr_header}')
+    #NOTE: remove 'chr' if ref genome doesn't start with chr
     if ref_chr_header==0:
         cmd = "sed -i 's/^chr//' " + str(pid) + ".gtf"
         #cmd = "cut -c4- " + str(pid) + ".gtf > " + str(pid) + "_new.gtf"
@@ -64,6 +70,7 @@ def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,s
         os.system(cmd)
         #cmd = "mv " + str(pid) + "_new.gtf " + str(pid) + ".gtf"
         #os.system(cmd)
+    #NOTE: evaluation program running command is also moved into YAML
     cmd = docs['gffcompare']['directory'] + docs['gffcompare']['command'] + \
          ref_file + ' ./' + str(pid) + ".gtf"
     print("Run gffcompare: \n")
@@ -76,6 +83,7 @@ def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,s
     #pdb.set_trace()
     result = subprocess.getoutput(cmd)
     print(result)
+    #TODO: get AUC from gtfcuff stdout, this part still needs more generalization
     if(len(str(result))<10):
         auc_val = 0.0
     else:
@@ -90,7 +98,7 @@ def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,s
 
 
 class Scallop(TestFunction):
-    #TODO: change this hard code later
+    #TODO: change this later, now only works for mixed(cag+cont+int)
     problem_type = 'mixed'
     def __init__(self, bam_file, normalize=False,boundary_fold = 0,ref_file='',library_type = 'empty',problem=''):
         super(Scallop,self).__init__(normalize)
@@ -100,9 +108,11 @@ class Scallop(TestFunction):
         self.library_type = library_type
         self.problem = problem
 
-        #read in software usage and parameter from yaml file
+        #NOTE: read in software usage and parameter from yaml file
+        #TODO:  read-in file name is still hard coded
+        # YAML file store path can be further discussed
         path = os.path.abspath(os.path.join(os.getcwd(),".."))
-        with open(path+'/scallop.yml', 'r') as file:
+        with open(path+'/stringtie.yml', 'r') as file:
             docs = yaml.safe_load(file)
             self.docs = docs
         #software contains a dict of basic use of specific parameters
@@ -166,7 +176,7 @@ class Scallop(TestFunction):
         self.lb = np.array(lb)
         self.ub = np.array(ub)
         
-        #TODO: not sure what is this
+        #TODO: now only support binary cag parameters
         #original code: self.vertices = np.array([2,2])
         self.n_vertices = np.array(len(categorical_dims)*[2])
         self.config = self.n_vertices
@@ -176,7 +186,7 @@ class Scallop(TestFunction):
         self.mean = None
         self.std = None
         
-        #get number of reference transcript for future gftcuff
+        #NOTE: get number of reference transcript for future gftcuff and ca_warmup
         cmd = 'cat ' + self.ref_file + ' | awk \'{print $3}\' | grep -c transcript'
         self.num_transcripts = int(subprocess.check_output(cmd,shell=True))
         print(f'run {cmd}, get {self.num_transcripts} ref transcripts')
@@ -204,7 +214,7 @@ class Scallop(TestFunction):
         # return the negative AUC score as accuracy
         return -np.array(Y)
 
-    #make this function as Scallop method
+    #NOTE: make this function as Scallop method
     def read_warmup_info(self, path_name):
         #pdb.set_trace()
         paraname_to_index = {}

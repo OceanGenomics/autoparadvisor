@@ -13,6 +13,7 @@ import yaml
 
 # Set up the objective function
 parser = argparse.ArgumentParser('Run Experiments')
+#NOTE: 'stringTie' used here is to distinguish output file name and command and actually not used as any indicator in codes
 parser.add_argument('-p', '--problem', type=str, default='pest', help='current choose can be scallop or stringtie')
 parser.add_argument('--max_iters', type=int, default=150, help='Maximum number of BO iterations.')
 parser.add_argument('--lamda', type=float, default=1e-6, help='the noise to inject for some problems')
@@ -69,8 +70,7 @@ for t in range(args.n_trials):
             'length_max_discrete': 25,
             'length_init_discrete': 20,
         }
-    #TODO: what is kwargs fro? noise ratio?
-    elif args.problem == 'Scallop' or args.problem == 'stringTie':
+    elif args.problem == 'Scallop' or args.problem == 'Stringtie':
         f = Scallop(bam_file=args.scallop_bam,boundary_fold=0,ref_file=args.ref_file, \
             library_type=args.scallop_lib_type,problem=args.problem.lower())
         kwargs = {'failtol':18, 'guided_restart':False,'length_init_discrete':20, 'length_min':0.02}
@@ -118,6 +118,7 @@ for t in range(args.n_trials):
         kernel_type = args.kernel_type
 
     if args.cawarmup > 0:
+        #NOTE: f.library_type is changed to f.num_transcript, f.library_type is coded in YAML
         if(args.sub_sample<1):
             cmd = 'perl ca_warmup.pl ./warmup_' + args.bamid + "_subsample_" + str(args.sub_sample) + \
                  " " + f.bam_file + " " + f.num_transcripts + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.scallop_path + " " + str(args.sub_sample)
@@ -129,6 +130,8 @@ for t in range(args.n_trials):
         x_next,y_next = f.read_warmup_info("./warmup_" + args.bamid + "_subsample_" + str(args.sub_sample) + "/")
         #adjust the search space
         #pdb.set_trace()
+        #NOTE: extract cont/int parameter order according to YAML config
+        # search space is not ajust on cag parameters 
         x_next_min = x_next[np.array(y_next).argmin()]
         x_next_cont = np.array([])
         for idx, val in enumerate(f.continuous_dims):

@@ -16,7 +16,7 @@ chomp $working_dir;
 our $experement_file = shift;
 chomp $experement_file;
 
-# This is the input Library type of aligned reads
+# NOTE: library_type is changed to num_transcript 
 my $num_transcripts = 229580;
 $num_transcripts = shift;
 chomp $num_transcripts;
@@ -61,7 +61,7 @@ chomp $old_working_dir;
 #adapted with yaml config file
 #get current path, read in yaml file
 my $path = abs_path();
-my $filename = $path .'/..'. ('/scallop.yml'); #change to config.yml later
+my $filename = $path .'/..'. ('/scallop.yml'); #may change to config.yml later
 my $yaml = LoadFile($filename);
 
 #get paras
@@ -134,7 +134,7 @@ sub run_with_one_change{
       if($type{$p} ne "cag"){
         $command .= "$prefix{$p}$p $parameter_values{$p}";
       }else{
-        #TODO: hard code for two cases of bool type now
+        #NOTE: hard code for two cases of bool type now
         if($usage{$p} eq "TF"){
           $command .= "$prefix{$p}$p ".(($parameter_values{$p}==1)?"true":"false");
         }elsif($usage{$p} eq "turn_on" && ($parameter_values{$p}==1)){
@@ -164,7 +164,7 @@ sub run_with_one_change{
   #return 0;
   system("mkdir -p $working_dir");
 
-  #TODO: leave this two conditions unchanged
+  #NOTE: leave this two conditions unchanged
   # if AUC is already computed return it rather than rerunning Scallop
   if(-e "$working_dir/$out_fname.auc" && `grep -c auc $working_dir/$out_fname.auc` > 0){
     $auc = `cat $working_dir/$out_fname.auc`;
@@ -197,10 +197,7 @@ sub run_with_one_change{
       system("$gffcompare_path$gffcompare_command$ref_file -o $working_dir/$out_fname $working_dir/$out_fname.gtf");
       if((-e "$working_dir/$out_fname.$out_fname.gtf.tmap")){
         # $num_transcripts should match the number of transcripts in the reference
-        #my $get_transcript = "cat $ref_file | awk \'{print \$3}\' | grep -c transcript";
-        #my $num_transcripts = `$get_transcript`;
-        #print 'number of ref transcripts:'.$num_transcripts;
-        #my $num_transcripts = 229580;
+        # $num_transcripts is passed from Scallop()
 
         $auc = `$gtfcuff_path$gtfcuff_command$working_dir/$out_fname.$out_fname.gtf.tmap $num_transcripts | tee $working_dir/$out_fname.auc`;
         system("rm $working_dir/$out_fname.$out_fname.gtf.refmap $working_dir/$out_fname.loci $working_dir/$out_fname.annotated.gtf $working_dir/$out_fname.tracking");
