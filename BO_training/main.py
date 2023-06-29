@@ -121,10 +121,10 @@ for t in range(args.n_trials):
         #NOTE: f.library_type is changed to f.num_transcript, f.library_type is coded in YAML
         if(args.sub_sample<1):
             cmd = 'perl ca_warmup_yaml.pl ./warmup_' + args.bamid + "_subsample_" + str(args.sub_sample) + \
-                 " " + f.bam_file + " " + f.num_transcripts + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.scallop_path + " " + str(args.sub_sample)
+                 " " + f.bam_file + " " + str(f.num_transcripts) + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.scallop_path + " " + str(args.sub_sample)
         else:
             cmd = 'perl ca_warmup_yaml.pl ./warmup_' + args.bamid + "_subsample_" + str(args.sub_sample) + \
-                 " " + f.bam_file + " " + f.num_transcripts + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.scallop_path
+                 " " + f.bam_file + " " + str(f.num_transcripts) + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.scallop_path
         print(cmd)
         os.system(cmd)
         x_next,y_next = f.read_warmup_info("./warmup_" + args.bamid + "_subsample_" + str(args.sub_sample) + "/")

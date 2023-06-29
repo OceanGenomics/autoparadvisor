@@ -61,7 +61,7 @@ chomp $old_working_dir;
 #adapted with yaml config file
 #get current path, read in yaml file
 my $path = abs_path();
-my $filename = $path .'/..'. ('/scallop.yml'); #may change to config.yml later
+my $filename = $path .'/..'. ('/stringtie.yml'); #may change to config.yml later
 my $yaml = LoadFile($filename);
 
 #get paras
