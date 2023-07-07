@@ -7,7 +7,7 @@ import subprocess
 import yaml
 
 
-def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,software_path,docs,problem):
+def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,software_path,docs):
     pid = os.getpid()
     #NOTE: original scallop_bounds list is moved into YAML file
     #initial command of choosen assemble software
@@ -100,13 +100,11 @@ def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,s
 class Scallop(TestFunction):
     #TODO: change this later, now only works for mixed(cag+cont+int)
     problem_type = 'mixed'
-    def __init__(self, bam_file, normalize=False,boundary_fold = 0,ref_file='',library_type = 'empty',problem=''):
+    def __init__(self, bam_file, normalize=False, boundary_fold = 0,ref_file=''):
         super(Scallop,self).__init__(normalize)
         assert boundary_fold>=0
         self.bam_file = bam_file
         self.ref_file = ref_file
-        self.library_type = library_type
-        self.problem = problem
 
         #NOTE: read in software usage and parameter from yaml file
         #TODO:  read-in file name is still hard coded
@@ -144,7 +142,7 @@ class Scallop(TestFunction):
                 categorical_dims.append(i)
             else:
                 hard_lb.append(parameter[parameter_name]['hard_min'])
-                hard_ub.append(parameter[parameter_name]['hard_max'])
+                hard_ub.append(float(parameter[parameter_name]['hard_max']))
                 continuous_dims.append(i)
                 if(parameter_type=='int'):
                     int_constrained_dims.append(i)
@@ -171,7 +169,7 @@ class Scallop(TestFunction):
                 else:
                     lb.append(max(parameter[parameter_name]['hard_min'], \
                         (1-boundary_fold)*parameter[parameter_name]['default']))
-                    ub.append(min(parameter[parameter_name]['hard_max'], \
+                    ub.append(min(float(parameter[parameter_name]['hard_max']), \
                         (1+boundary_fold)*parameter[parameter_name]['default']))
         self.lb = np.array(lb)
         self.ub = np.array(ub)
@@ -192,7 +190,7 @@ class Scallop(TestFunction):
         print(f'run {cmd}, get {self.num_transcripts} ref transcripts')
         #self.num_transcripts = 197649
 
-    def compute(self,X,normalize=False,scallop_path='',subsamp=1):
+    def compute(self,X,normalize=False,software_path='',subsamp=1):
         #pdb.set_trace()
         if X.ndim == 1:
             X = X.reshape(1, -1)
@@ -204,7 +202,7 @@ class Scallop(TestFunction):
             process_list = []
             for i in range(N):
                 tmp_process = multiprocessing.Process(target=Scallop_base, \
-                    args=(i,X[i],Y,self.ref_file,self.num_transcripts,self.bam_file,self.library_type,scallop_path,self.docs,self.problem))
+                    args=(i,X[i],Y,self.ref_file,self.num_transcripts,self.bam_file,software_path,self.docs))
                 process_list.append(tmp_process)
             for process in process_list:
                 process.start()
