@@ -107,7 +107,12 @@ class MixedOptimizer(Optimizer):
                 X_init_cat = self.warp_discrete(X_init_cat, )
             X_init_cat = onehot2ordinal(X_init_cat, self.cat_dims)
             # Put the two parts back by a hstack
-            X_init = np.hstack((X_init_cat, X_init_cont))
+            #X_init = np.hstack((X_init_cat, X_init_cont))
+            #NOTE: change stack manar into insert according to dim of cat
+            for index, value in enumerate(self.d_cat):
+                new_cat = np.reshape(X_init_cat[:,index], (self.casmopolitan.n_init,1))
+                X_init_cont = np.insert(X_init_cont, [value], new_cat, axis=1)
+            X_init = X_init_cont
 
             with torch.no_grad():
                 self.auxiliary_gp.eval()
