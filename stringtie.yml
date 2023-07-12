@@ -2,12 +2,12 @@
 
 #full commands for black-box software
 #initial command of assemble software
-fixed_option:
+initial_option:
   name: stringtie
   input_option: ' '
-  output_option: ' -o ./'
-  outputfile_format: '.gtf'
-  additional_option: ' -c 0.001 > /dev/null 2>&1'
+  output_option: ' -o '
+  #software specific command
+  additional_option: ''
 
 
 #parameters for choosed software
