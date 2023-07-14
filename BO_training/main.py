@@ -32,9 +32,9 @@ parser.add_argument('--seed', type=int, default=None, help='**initial** seed set
 parser.add_argument('-k', '--kernel_type', type=str, default=None, help='specifies the kernel type')
 parser.add_argument('--infer_noise_var', action='store_true')
 parser.add_argument('--bamid',type=str,default="",help='ID of the bam file')
-parser.add_argument('--bam_file',type=str, default=None, help='the input bam file of Scallop')
+parser.add_argument('--input_file',type=str, default=None, help='the input file/files of software')
 parser.add_argument('--ref_file',type=str,default='',help='reference file for assembler software, gtf format')
-parser.add_argument('--software_path',type=str,default='',help='The path of the software scallop')
+parser.add_argument('--software_path',type=str,default='',help='The path of the testing blackbox software')
 parser.add_argument('--sub_sample',type=float,default=1.0,help='Sampling rate of the scallop')
 
 
@@ -70,10 +70,10 @@ for t in range(args.n_trials):
             'length_init_discrete': 20,
         }
     elif args.problem == 'Scallop':
-        f = Scallop(bam_file=args.bam_file, boundary_fold = 0, ref_file=args.ref_file)
+        f = Scallop(input_file=args.input_file, boundary_fold = 0, ref_file=args.ref_file)
         kwargs = {'failtol':18, 'guided_restart':False,'length_init_discrete':100, 'length_min':0.005}
     elif args.problem == 'stringtie':
-        f = Scallop(bam_file=args.bam_file, boundary_fold = 0, ref_file=args.ref_file)
+        f = Scallop(input_file=args.input_file, boundary_fold = 0, ref_file=args.ref_file)
         kwargs = {'failtol':10, 'guided_restart':False,'length_init_discrete':500, 'length_min':0.004}
     elif args.problem == 'func2C':
         f = Func2C(lamda=args.lamda)
@@ -122,10 +122,10 @@ for t in range(args.n_trials):
         #NOTE: f.library_type is changed to f.num_transcript, f.library_type is coded in YAML
         if(args.sub_sample<1):
             cmd = 'perl ca_warmup_yaml.pl ./warmup_' + args.bamid + "_subsample_" + str(args.sub_sample) + \
-                 " " + f.bam_file + " " + str(f.num_transcripts) + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.software_path + " " + str(args.sub_sample)
+                 " " + f.input_file + " " + str(f.num_transcripts) + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.software_path + " " + str(args.sub_sample)
         else:
             cmd = 'perl ca_warmup_yaml.pl ./warmup_' + args.bamid + "_subsample_" + str(args.sub_sample) + \
-                 " " + f.bam_file + " " + str(f.num_transcripts) + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.software_path
+                 " " + f.input_file + " " + str(f.num_transcripts) + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.software_path
         print(cmd)
         os.system(cmd)
         x_next,y_next = f.read_warmup_info("./warmup_" + args.bamid + "_subsample_" + str(args.sub_sample) + "/")

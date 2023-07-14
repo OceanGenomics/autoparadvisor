@@ -7,15 +7,12 @@ import subprocess
 import yaml
 
 
-def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,software_path,docs):
+def Scallop_base(index,x,Result,ref_file,input_file,software_path,docs):
     pid = os.getpid()
     #NOTE: original scallop_bounds list is moved into YAML file
-    #initial command of choosen assemble software
-    software = docs['initial_option']
     #initial parameters for choosen software
     parameter_bounds = docs['parameter_bounds']
-    cmd = software_path + software['name'] + software['input_option'] + \
-         bam_file + software['additional_option']
+    pcmd = ''
 
     #for optional parameter choosing
     for i in range(x.shape[0]):
@@ -31,68 +28,71 @@ def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,software_path,
         if parameter_type=='cag': 
             if parameter[parameter_name]['usage']=='TF':
                 if int(x[i])==0:
-                    cmd += parameter[parameter_name]['prefix'] + parameter_name + " false"
+                    pcmd = ' '.join([pcmd, parameter[parameter_name]['prefix'], "false"])
                 else:
-                    cmd += parameter[parameter_name]['prefix']  + parameter_name + " true"
+                    pcmd = ' '.join([pcmd, parameter[parameter_name]['prefix'], "true"])
             elif parameter[parameter_name]['usage']=='turn_on':
                 if int(x[i])==1:
-                    cmd += parameter[parameter_name]['prefix'] + parameter_name
+                    pcmd = ' '.join([pcmd, parameter[parameter_name]['prefix']])
         #for continous type parameter (int)
         elif parameter_type=='int':
-            cmd += parameter[parameter_name]['prefix']  + parameter_name + " " + str(int(x[i]))
+            pcmd = ' '.join([pcmd, parameter[parameter_name]['prefix'], str(int(x[i]))])
         #for continous type parameter (float)
         elif parameter_type=='float':
-            cmd += parameter[parameter_name]['prefix'] + parameter_name + " " + str(x[i])
+            pcmd = ' '.join([cmd, parameter[parameter_name]['prefix'], str(x[i])])
 
-    #NOTE: comment out subsampling since its not used
-    #if(subsamp<1): 
-    #    cmd += " --subsampling " + str(subsamp)
-    #NOTE: library_type is moved into YAML config
-    #cmd +=" --library_type " + library_type
-    #commands for output, should be same within other software
-    #TODO: maybe need to generalize later
-    cmd +=" -o ./" + str(pid) + ".gtf" + " > /dev/null 2>&1"
+    #assemble command of choosen assemble software with formatting
+    format_dict = {'input_file':input_file, 'parameters':pcmd, 'path':software_path}
+    software = docs['testing_software']
+    for option in software:
+        if option == 'format':
+            software_format = software[option]
+        elif option == 'pid':
+            format_dict[option] = pid
+        else:
+            format_dict[option] = software[option]
+    cmd = software_format.format(**format_dict)
     print(f"Run scallop with the following command: \n {cmd}")
     os.system(cmd)
     #pdb.set_trace()
     #check if output gft is started with chr
     #if the chromosome head starts with 'chr', remove it
-    cmd = "grep -c '^chr' "+ str(pid) + ".gtf"
+    #cmd = "grep -c '^chr' "+ str(pid) + ".gtf"
+    cmd = docs['precheck']['check_command'].format(pid)
     chr_header = int(subprocess.getoutput(cmd))
-    ref_cmd = "grep -c '^chr' "+ ref_file
-    ref_chr_header = int(subprocess.getoutput(ref_cmd))
     print(f'number of transcript start with chr: {chr_header}')
     #NOTE: remove 'chr' if ref genome doesn't start with chr
-    if ref_chr_header==0:
-        cmd = "sed -i 's/^chr//' " + str(pid) + ".gtf"
+    if chr_header>0:
+        cmd = docs['precheck']['excute_command'].format(pid)
         #cmd = "cut -c4- " + str(pid) + ".gtf > " + str(pid) + "_new.gtf"
         #print(cmd)
         os.system(cmd)
         #cmd = "mv " + str(pid) + "_new.gtf " + str(pid) + ".gtf"
         #os.system(cmd)
-    #NOTE: evaluation program running command is also moved into YAML
-    cmd = docs['gffcompare']['directory'] + docs['gffcompare']['command'] + \
-         ref_file + ' ./' + str(pid) + ".gtf"
-    print("Run gffcompare: \n")
-    print(cmd)
-    os.system(cmd)
-    cmd = docs['gtfcuff']['directory'] + docs['gtfcuff']['command'] + \
-         './gffcmp.' + str(pid) + ".gtf" + ".tmap " + str(num_transcripts)
-    print("Run gtfcuff: \n")
-    print(cmd)
+
+    # looping all required evaluation steps
+    for val_step in docs['evaluation']:
+        format_dict = {}
+        for key in val_step:
+            if key == 'format':
+                eval_format = val_step[key]
+            elif key == 'pid':
+                format_dict[key] = pid
+            else:  
+                format_dict[key] = val_step[key]
+        cmd = eval_format.format(**format_dict)
+        print("Run evaluation step: \n")
+        print(cmd)
+        os.system(cmd)
+
     #pdb.set_trace()
-    result = subprocess.getoutput(cmd)
-    print(result)
-    #TODO: get AUC from gtfcuff stdout, this part still needs more generalization
-    if(len(str(result))<10):
-        auc_val = 0.0
-    else:
-        auc_val = float(str(result).split("auc")[-1].split("=")[-1].split("\\")[0])
+    cmd = docs['postcheck']['auc_command'].format(pid)
+    auc_val = subprocess.getoutput(cmd)
     print(auc_val)
-    Result[index] = auc_val
-    cmd = 'rm '+ str(pid) + ".gtf"
-    os.system(cmd)
-    cmd = 'rm *.' + str(pid) + '.*'
+    Result[index] = 0.0 if auc_val == '' else float(auc_val)
+
+    # remove files with pid
+    cmd = docs['postcheck']['clear_command'].format(pid)
     os.system(cmd)
 
 
@@ -100,10 +100,10 @@ def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,software_path,
 class Scallop(TestFunction):
     #TODO: change this later, now only works for mixed(cag+cont+int)
     problem_type = 'mixed'
-    def __init__(self, bam_file, normalize=False, boundary_fold = 0,ref_file=''):
+    def __init__(self, input_file, normalize=False, boundary_fold = 0,ref_file=''):
         super(Scallop,self).__init__(normalize)
         assert boundary_fold>=0
-        self.bam_file = bam_file
+        self.input_file = input_file
         self.ref_file = ref_file
 
         #NOTE: read in software usage and parameter from yaml file
@@ -115,9 +115,7 @@ class Scallop(TestFunction):
             self.docs = docs
         #software contains a dict of basic use of specific parameters
         #parameter_bounds contain a list of tunable parameters
-        software = docs['initial_option']
         parameter_bounds = docs['parameter_bounds']
-        self.software = software
         self.parameter_bounds = parameter_bounds
 
 
@@ -185,9 +183,9 @@ class Scallop(TestFunction):
         self.std = None
         
         #NOTE: get number of reference transcript for future gftcuff and ca_warmup
-        cmd = 'cat ' + self.ref_file + ' | awk \'{print $3}\' | grep -c transcript'
-        self.num_transcripts = int(subprocess.check_output(cmd,shell=True))
-        print(f'run {cmd}, get {self.num_transcripts} ref transcripts')
+        #cmd = 'cat ' + self.ref_file + ' | awk \'{print $3}\' | grep -c transcript'
+        #self.num_transcripts = int(subprocess.check_output(cmd,shell=True))
+        #print(f'run {cmd}, get {self.num_transcripts} ref transcripts')
         #self.num_transcripts = 197649
 
     def compute(self,X,normalize=False,software_path='',subsamp=1):
@@ -202,7 +200,7 @@ class Scallop(TestFunction):
             process_list = []
             for i in range(N):
                 tmp_process = multiprocessing.Process(target=Scallop_base, \
-                    args=(i,X[i],Y,self.ref_file,self.num_transcripts,self.bam_file,software_path,self.docs))
+                    args=(i,X[i],Y,self.ref_file,self.input_file,software_path,self.docs))
                 process_list.append(tmp_process)
             for process in process_list:
                 process.start()
