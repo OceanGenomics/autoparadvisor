@@ -118,6 +118,8 @@ for t in range(args.n_trials):
     else: 
         kernel_type = args.kernel_type
 
+    '''
+    ca_warmup using Perl
     if args.cawarmup > 0:
         #NOTE: f.library_type is changed to f.num_transcript, f.library_type is coded in YAML
         if(args.sub_sample<1):
@@ -141,6 +143,21 @@ for t in range(args.n_trials):
         #if upperbound was changed by cawarmup make sure is below hard ub
         f.ub = np.minimum(f.ub, f.hard_ub)
         #pdb.set_trace()
+    '''
+    # Perl re-implement
+    if args.cawarmup > 0:
+        x_next,y_next = coordinate_ascent_warmup_yaml(f, max_iters=args.cawarmup, 
+                                path=args.software_path, num_threads = 1)
+        print(x_next, y_next)
+        # search space is not ajust on cag parameters 
+        x_next_min = x_next[np.array(y_next).argmin()]
+        x_next_cont = np.array([])
+        for idx, val in enumerate(f.continuous_dims):
+            x_next_cont = np.append(x_next_cont, x_next_min[val])
+        f.ub = np.maximum(x_next_cont*2,f.ub)
+        #if upperbound was changed by cawarmup make sure is below hard ub
+        f.ub = np.minimum(f.ub, f.hard_ub)
+
 
     if problem_type == 'mixed':
         optim = MixedOptimizer(f.config, f.lb, f.ub, f.continuous_dims, f.categorical_dims, int_constrained_dims=f.int_constrained_dims,
@@ -168,7 +185,7 @@ for t in range(args.n_trials):
         n_init_num = len(y_next)
     else:
         x_next = optim.suggest(args.batch_size)
-        y_next = f.compute(x_next, normalize=f.normalize,software_path=args.software_path,subsamp=args.sub_sample)
+        y_next = f.compute(x_next, normalize=f.normalize,software_path=args.software_path)
         optim.observe(x_next, y_next)
         n_init_num = args.n_init
     end = time.time()
@@ -177,7 +194,7 @@ for t in range(args.n_trials):
         #pdb.set_trace()
         start = time.time()
         x_next = optim.suggest(args.batch_size)
-        y_next = f.compute(x_next, normalize=f.normalize,software_path=args.software_path,subsamp=args.sub_sample)
+        y_next = f.compute(x_next, normalize=f.normalize,software_path=args.software_path)
         optim.observe(x_next, y_next)
         end = time.time()
         T_array.append(end - start)
@@ -216,6 +233,7 @@ for t in range(args.n_trials):
     np.save(args.save_path + "/" + args.problem + "_wall_clock_"+str(t+1)+".npy",np.array(T_array))
     np.save(args.save_path + "/" + args.problem + "_X_"+str(t+1)+".npy",optim.casmopolitan.X)
     np.save(args.save_path + "/" + args.problem + "_Y_"+str(t+1)+".npy",Y)
+    print('process done!')
 
     if args.seed is not None:
         args.seed += 1
