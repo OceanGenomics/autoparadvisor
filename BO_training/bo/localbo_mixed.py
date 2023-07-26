@@ -176,7 +176,11 @@ class CASMOPOLITANMixed(CASMOPOLITANCat):
             
             X_cand_cont[mask] = pert[mask]
 
-            X_cand = np.hstack((X_cand_cat, X_cand_cont))
+            #X_cand = np.hstack((X_cand_cat, X_cand_cont))
+            for index, value in enumerate(self.cat_dims):
+                new_cat = np.reshape(X_cand_cat[:,index], (n_cand,1))
+                X_cand_cont = np.insert(X_cand_cont, [value], new_cat, axis=1)
+            X_cand = X_cand_cont
 
             # Generate n_cand candidates for the continuous variables, in their trust region
             with torch.no_grad(), gpytorch.settings.max_cholesky_size(self.max_cholesky_size):

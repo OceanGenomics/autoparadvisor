@@ -107,7 +107,12 @@ class MixedOptimizer(Optimizer):
                 X_init_cat = self.warp_discrete(X_init_cat, )
             X_init_cat = onehot2ordinal(X_init_cat, self.cat_dims)
             # Put the two parts back by a hstack
-            X_init = np.hstack((X_init_cat, X_init_cont))
+            #X_init = np.hstack((X_init_cat, X_init_cont))
+            #NOTE: change stack manar into insert according to dim of cat
+            for index, value in enumerate(self.d_cat):
+                new_cat = np.reshape(X_init_cat[:,index], (self.casmopolitan.n_init,1))
+                X_init_cont = np.insert(X_init_cont, [value], new_cat, axis=1)
+            X_init = X_init_cont
 
             with torch.no_grad():
                 self.auxiliary_gp.eval()
@@ -154,13 +159,11 @@ class MixedOptimizer(Optimizer):
                 )
                 X_init_cat.append(cat_sample)
             X_init_cat = np.array(X_init_cat)
-            #DONE: change stack manar into insert according to dim of cat
+            #NOTE: change stack manar into insert according to dim of cat
             #self.X_init = np.hstack((X_init_cat, X_init_cont))
-            col = 0
-            for i in self.d_cat:
-                new_cont = np.reshape(X_init_cat[:,col], (self.casmopolitan.n_init,1))
-                X_init_cont = np.insert(X_init_cont, [i], new_cont, axis=1)
-                col += 1
+            for index, value in enumerate(self.d_cat):
+                new_cat = np.reshape(X_init_cat[:,index], (self.casmopolitan.n_init,1))
+                X_init_cont = np.insert(X_init_cont, [value], new_cat, axis=1)
             self.X_init = X_init_cont
             self.casmopolitan._restart()
             self.casmopolitan._X = np.zeros((0, self.casmopolitan.dim))
@@ -179,13 +182,11 @@ class MixedOptimizer(Optimizer):
                 X_init_cat = self.warp_discrete(X_init_cat, )
             X_init_cat = onehot2ordinal(X_init_cat, self.cat_dims)
             # Put the two parts back by a hstack
-            #DONE: change stack manar into insert according to dim of cat 
-            #self.X_init = np.hstack((X_init_cat, X_init_cont))
-            col = 0
-            for i in self.d_cat:
-                new_cont = np.reshape(X_init_cat[:,col], (self.casmopolitan.n_init,1))
-                X_init_cont = np.insert(X_init_cont, [i], new_cont, axis=1)
-                col += 1
+            # self.X_init = np.hstack((X_init_cat, X_init_cont))
+            #NOTE: change stack manar into insert according to dim of cat 
+            for index, value in enumerate(self.d_cat):
+                new_cat = np.reshape(X_init_cat[:,index], (self.casmopolitan.n_init,1))
+                X_init_cont = np.insert(X_init_cont, [value], new_cat, axis=1)
             self.X_init = X_init_cont
             #pdb.set_trace()
             if(self.casmopolitan.int_constrained_dims is not None):

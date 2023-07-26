@@ -13,6 +13,7 @@ import yaml
 
 # Set up the objective function
 parser = argparse.ArgumentParser('Run Experiments')
+#NOTE: 'stringTie' used here is to distinguish output file name and command and actually not used as any indicator in codes
 parser.add_argument('-p', '--problem', type=str, default='pest', help='current choose can be scallop or stringtie')
 parser.add_argument('--max_iters', type=int, default=150, help='Maximum number of BO iterations.')
 parser.add_argument('--lamda', type=float, default=1e-6, help='the noise to inject for some problems')
@@ -31,12 +32,11 @@ parser.add_argument('--seed', type=int, default=None, help='**initial** seed set
 parser.add_argument('-k', '--kernel_type', type=str, default=None, help='specifies the kernel type')
 parser.add_argument('--infer_noise_var', action='store_true')
 parser.add_argument('--bamid',type=str,default="",help='ID of the bam file')
-parser.add_argument('--scallop_bam',type=str, default=None, help='the input bam file of Scallop')
-parser.add_argument('--scallop_lib_type',type=str,default='empty',help='library type of the Scallop input')
-parser.add_argument('--scallop_ref',type=str,default='GRCh38',help='reference name of the Scallop input')
-parser.add_argument('--scallop_path',type=str,default='',help='The path of the software scallop')
-parser.add_argument('--sub_sample',type=float,default=1.0,help='Sampling rate of the scallop')
+parser.add_argument('--input_file',type=str, default=None, help='the input file/files of software')
 parser.add_argument('--ref_file',type=str,default='',help='reference file for assembler software, gtf format')
+parser.add_argument('--software_path',type=str,default='',help='The path of the testing blackbox software')
+parser.add_argument('--sub_sample',type=float,default=1.0,help='Sampling rate of the scallop')
+
 
 args = parser.parse_args()
 options = vars(args)
@@ -69,11 +69,12 @@ for t in range(args.n_trials):
             'length_max_discrete': 25,
             'length_init_discrete': 20,
         }
-    #TODO: what is kwargs fro? noise ratio?
-    elif args.problem == 'Scallop' or args.problem == 'stringTie':
-        f = Scallop(bam_file=args.scallop_bam,boundary_fold=0,ref_file=args.ref_file, \
-            library_type=args.scallop_lib_type,problem=args.problem.lower())
-        kwargs = {'failtol':18, 'guided_restart':False,'length_init_discrete':20, 'length_min':0.02}
+    elif args.problem == 'Scallop':
+        f = Scallop(input_file=args.input_file, boundary_fold = 0, ref_file=args.ref_file)
+        kwargs = {'failtol':18, 'guided_restart':False,'length_init_discrete':100, 'length_min':0.005}
+    elif args.problem == 'stringtie':
+        f = Scallop(input_file=args.input_file, boundary_fold = 0, ref_file=args.ref_file)
+        kwargs = {'failtol':10, 'guided_restart':False,'length_init_discrete':500, 'length_min':0.004}
     elif args.problem == 'func2C':
         f = Func2C(lamda=args.lamda)
     elif args.problem == 'func2C_testDiscrete':
@@ -118,18 +119,27 @@ for t in range(args.n_trials):
         kernel_type = args.kernel_type
 
     if args.cawarmup > 0:
+        #NOTE: f.library_type is changed to f.num_transcript, f.library_type is coded in YAML
         if(args.sub_sample<1):
-            cmd = 'perl ca_warmup.pl ./warmup_' + args.bamid + "_subsample_" + str(args.sub_sample) + \
-                 " " + f.bam_file + " " + f.library_type + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.scallop_path + " " + str(args.sub_sample)
+            cmd = 'perl ca_warmup_yaml.pl ./warmup_' + args.bamid + "_subsample_" + str(args.sub_sample) + \
+                 " " + f.input_file + " " + str(f.num_transcripts) + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.software_path + " " + str(args.sub_sample)
         else:
-            cmd = 'perl ca_warmup.pl ./warmup_' + args.bamid + "_subsample_" + str(args.sub_sample) + \
-                 " " + f.bam_file + " " + f.library_type + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.scallop_path
+            cmd = 'perl ca_warmup_yaml.pl ./warmup_' + args.bamid + "_subsample_" + str(args.sub_sample) + \
+                 " " + f.input_file + " " + str(f.num_transcripts) + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.software_path
         print(cmd)
         os.system(cmd)
         x_next,y_next = f.read_warmup_info("./warmup_" + args.bamid + "_subsample_" + str(args.sub_sample) + "/")
         #adjust the search space
         #pdb.set_trace()
-        f.ub = np.maximum(x_next[np.array(y_next).argmin()][2:]*2,f.ub)
+        #NOTE: extract cont/int parameter order according to YAML config
+        # search space is not ajust on cag parameters 
+        x_next_min = x_next[np.array(y_next).argmin()]
+        x_next_cont = np.array([])
+        for idx, val in enumerate(f.continuous_dims):
+            x_next_cont = np.append(x_next_cont, x_next_min[val])
+        f.ub = np.maximum(x_next_cont*2,f.ub)
+        #if upperbound was changed by cawarmup make sure is below hard ub
+        f.ub = np.minimum(f.ub, f.hard_ub)
         #pdb.set_trace()
 
     if problem_type == 'mixed':
@@ -158,7 +168,7 @@ for t in range(args.n_trials):
         n_init_num = len(y_next)
     else:
         x_next = optim.suggest(args.batch_size)
-        y_next = f.compute(x_next, normalize=f.normalize,scallop_path=args.scallop_path,subsamp=args.sub_sample)
+        y_next = f.compute(x_next, normalize=f.normalize,software_path=args.software_path,subsamp=args.sub_sample)
         optim.observe(x_next, y_next)
         n_init_num = args.n_init
     end = time.time()
@@ -167,7 +177,7 @@ for t in range(args.n_trials):
         #pdb.set_trace()
         start = time.time()
         x_next = optim.suggest(args.batch_size)
-        y_next = f.compute(x_next, normalize=f.normalize,scallop_path=args.scallop_path,subsamp=args.sub_sample)
+        y_next = f.compute(x_next, normalize=f.normalize,software_path=args.software_path,subsamp=args.sub_sample)
         optim.observe(x_next, y_next)
         end = time.time()
         T_array.append(end - start)
