@@ -6,7 +6,6 @@ import multiprocessing
 import subprocess
 import yaml
 import copy
-import threading
 
 def Scallop_base(index,x,Result,ref_file,input_file,software_path,docs):
     pid = os.getpid()
@@ -96,8 +95,7 @@ def Scallop_base(index,x,Result,ref_file,input_file,software_path,docs):
 
 
 class Scallop(TestFunction):
-    #TODO: change this later, now only works for mixed(cag+cont+int)
-    problem_type = 'mixed'
+
     def __init__(self, input_file, normalize=False, boundary_fold = 0,ref_file=''):
         super(Scallop,self).__init__(normalize)
         assert boundary_fold>=0
@@ -153,7 +151,7 @@ class Scallop(TestFunction):
         self.continuous_dims = np.asarray(continuous_dims)
         self.default = np.array(default)
         self.dim = len(self.categorical_dims) + len(self.continuous_dims)
-        self.int_constrained_dims = np.asarray(int_constrained_dims)
+        self.int_constrained_dims = np.asarray(int_constrained_dims) if len(int_constrained_dims)!=0 else None
         self.hard_lb = np.array(hard_lb)
         self.hard_ub = np.array(hard_ub)
         
@@ -193,7 +191,8 @@ class Scallop(TestFunction):
             X = X.reshape(1, -1)
         N = X.shape[0]
         #assert np.array_equal(X[:,self.int_constrained_dims], np.round(X[:,self.int_constrained_dims]))
-        X[:,self.int_constrained_dims] = np.round(X[:,self.int_constrained_dims])
+        if self.int_constrained_dims is not None:
+            X[:,self.int_constrained_dims] = np.round(X[:,self.int_constrained_dims])
         with Manager() as manager:
             Y = manager.list(range(N))
             process_list = []
@@ -236,93 +235,6 @@ class Scallop(TestFunction):
             X = np.vstack((X,X_instance))
         return X,Y
 
-def coordinate_ascent_warmup(Function,fold_step=1,iterations=20):
-    '''
-    written by Yihang
-    '''
-    #pdb.set_trace()
-    max_iter_for_each_dim = int(iterations/Function.dim) + 1
-    dim_shuffle = np.random.permutation(Function.dim)
-    shuffle_index = 0
-    ca_index = dim_shuffle[shuffle_index]
-    ca_direction = 0
-    old_fold_step = fold_step
-    temp_fold_step = fold_step
-    y_old = float(Function.compute(Function.default))
-    iter_num = 0
-    x_old = np.copy(Function.default)
-    ca_X = np.zeros((0,Function.dim))
-    ca_Y = []
-    ca_X = np.vstack((ca_X,x_old))
-    ca_Y.append(y_old)
-    iter_num+=1
-    while iter_num < iterations:
-        if ca_index in Function.categorical_dims:
-            if(x_old[ca_index]+1<=Function.config[ca_index]-1 and ca_direction>=0 and ca_direction<max_iter_for_each_dim):
-                x_new = np.copy(x_old)
-                x_new[ca_index] = x_new[ca_index] + 1
-                y_new = float(Function.compute(x_new))
-                iter_num+=1
-                ca_X = np.vstack((ca_X,x_new))
-                ca_Y.append(y_new)
-                if(y_new < y_old):
-                    ca_direction += 1
-                    y_old = y_new
-                    x_old = np.copy(x_new)
-                    continue
-            if(x_old[ca_index]-1>=0 and ca_direction<=0 and abs(ca_direction)<max_iter_for_each_dim):
-                x_new = np.copy(x_old)
-                x_new[ca_index] = x_new[ca_index] - 1
-                y_new = float(Function.compute(x_new))
-                iter_num+=1
-                ca_X = np.vstack((ca_X,x_new))
-                ca_Y.append(y_new)
-                if(y_new < y_old):
-                    y_old = y_new
-                    x_old = np.copy(x_new)
-                    ca_direction -= 1
-                    continue
-        else:
-            if(x_old[ca_index] + temp_fold_step*Function.default[ca_index] <=Function.hard_ub[ca_index-len(Function.categorical_dims)] and ca_direction>=0 and ca_direction<max_iter_for_each_dim):
-                x_new = np.copy(x_old)
-                x_new[ca_index] = x_new[ca_index] + temp_fold_step*Function.default[ca_index]
-                #x_new[ca_index] = x_new[ca_index] * (1+temp_fold_step)
-                if(ca_index in Function.int_constrained_dims):
-                    x_new[ca_index] = int(x_new[ca_index])
-                y_new = float(Function.compute(x_new))
-                iter_num+=1
-                ca_X = np.vstack((ca_X,x_new))
-                ca_Y.append(y_new)
-                if(y_new < y_old):
-                    temp_fold_step = temp_fold_step/2.0
-                    ca_direction += 1
-                    y_old = y_new
-                    x_old = np.copy(x_new)
-                    continue
-            if(x_old[ca_index] - temp_fold_step*Function.default[ca_index]>=Function.hard_lb[ca_index-len(Function.categorical_dims)] and ca_direction<=0 and abs(ca_direction)<max_iter_for_each_dim):
-                x_new = np.copy(x_old)
-                x_new[ca_index] = x_new[ca_index] - temp_fold_step*Function.default[ca_index]
-                #x_new[ca_index] = x_new[ca_index] * (1-temp_fold_step)
-                if(ca_index in Function.int_constrained_dims):
-                    x_new[ca_index] = int(x_new[ca_index])
-                y_new = float(Function.compute(x_new))
-                iter_num+=1
-                ca_X = np.vstack((ca_X,x_new))
-                ca_Y.append(y_new)
-                if(y_new < y_old):
-                    temp_fold_step = temp_fold_step/2.0
-                    ca_direction -= 1
-                    y_old = y_new
-                    x_old = np.copy(x_new)
-                    continue
-        shuffle_index = (shuffle_index+1) % Function.dim
-        #ca_index = (ca_index+1) % Function.dim
-        ca_index = dim_shuffle[shuffle_index]
-        ca_direction = 0
-        if(shuffle_index==0):
-            old_fold_step = old_fold_step/2.0
-        temp_fold_step = old_fold_step
-    return (ca_X,ca_Y)
 
 def coordinate_ascent_warmup_yaml(f, max_iters=60,path='',num_threads = 1):
     '''
@@ -336,7 +248,6 @@ def coordinate_ascent_warmup_yaml(f, max_iters=60,path='',num_threads = 1):
     parameter_values = copy.deepcopy(f.parameter_values)
     step_size = copy.deepcopy(f.step_size)
     type = copy.deepcopy(f.para_type)
-
  
     def check_with_one_change(param_to_change, param_value, check):
         # get param position in unsorted parameter list
@@ -353,7 +264,7 @@ def coordinate_ascent_warmup_yaml(f, max_iters=60,path='',num_threads = 1):
                     return 0
             # if got here and in check mode, means check is passed
             return 1
-        # run software
+        # if not in check mode, return parameter array need to run
         else:
             # ensures the floating point parameters don't get too complex
             if type[param_to_change] == 'float':
@@ -361,6 +272,103 @@ def coordinate_ascent_warmup_yaml(f, max_iters=60,path='',num_threads = 1):
             # use index position to find the 'parameter to change'
             x_new = [param_value if p==param_to_change else parameter_values[p] for p in list(type.keys())]
             return x_new
+
+    def compute_nonboolen_changes(param, parameter_values, step_size, change_index, direction, num_threads, ca_X):
+        x_new_change = np.zeros((0,f.dim))
+        y_new_change = np.zeros((0))
+        for t in range(1, num_threads + 1):
+            # check point before running scallop
+            parameter_value_new = parameter_values[param] + direction * (t * step_size[param])
+            if check_with_one_change(param, parameter_value_new, "check") == 1:
+                x_new = check_with_one_change(param, parameter_value_new, "")
+                x_new_change = np.vstack((x_new_change,x_new))
+                change_index.append(direction * t)
+                # else check==0: something should not be run to avoid error
+                # do nothing
+        if np.shape(x_new_change)[0] > 0: # at least one combination passed check
+            print('would try combination:',x_new_change)
+            ca_X = np.vstack((ca_X, x_new_change))
+            y_new_change = f.compute(x_new_change, normalize=f.normalize, software_path=path)
+
+        return x_new_change, y_new_change, ca_X
+
+    def update_one_param(single_param_change, made_one_change, param, parameter_values, step_size, cur_auc, num_threads, ca_X, ca_Y):
+        if type[param] != "bool":
+            change_index = []
+
+            # run parameter at parallel step size 
+            # increase with direction 1 and decrease with direction -1
+            x_new_plus, y_new_plus, ca_X = compute_nonboolen_changes(param, parameter_values, step_size, \
+                                            change_index, 1, num_threads, ca_X)
+            x_new_minus, y_new_minus, ca_X = compute_nonboolen_changes(param, parameter_values, step_size, \
+                                            change_index, -1, num_threads, ca_X)
+            y_new = np.hstack((y_new_plus, y_new_minus))
+            ca_Y = np.append(ca_Y, y_new)
+            print("Num threads running: " + str(len(x_new_plus)+len(x_new_minus)))
+            
+            #update best auc
+            max_change = 0
+            for i in range(len(y_new)):
+                if y_new[i] < cur_auc:
+                    cur_auc = y_new[i]
+                    max_change = change_index[i]
+                    single_param_change = 1
+                    made_one_change = 1
+            #update parameter based on best auc
+            parameter_values[param] += max_change * step_size[param]
+
+        #boolean parameters since only one will ever need to be run.
+        else:
+            # increase cagetory type by 1
+            parameter_value_new = parameter_values[param] + step_size[param]
+            if check_with_one_change(param, parameter_value_new, 'check')==1:
+                x_new_plus = check_with_one_change(param, parameter_value_new, '')
+                y_new_plus = float(f.compute(x_new_plus, normalize=f.normalize, software_path=path))
+                ca_X = np.vstack((ca_X, x_new_plus))
+                ca_Y = np.append(ca_Y, y_new_plus)
+                # update best auc
+                if y_new_plus < cur_auc:
+                    cur_auc = y_new_plus
+                    parameter_values[param] += step_size[param]
+                    single_param_change = 1
+                    made_one_change = 1
+
+            # decrease cagetory type by 1
+            else:
+                parameter_value_new = parameter_values[param] - step_size[param]
+                if check_with_one_change(param, parameter_value_new, 'check')==1:
+                    x_new_minus = check_with_one_change(param, parameter_value_new, '')
+                    y_new_minus = float(f.compute(x_new_minus, normalize=f.normalize, software_path=path))
+                    ca_X = np.vstack((ca_X, x_new_minus))
+                    ca_Y = np.append(ca_Y, y_new_minus)
+                    # update best auc
+                    if y_new_minus < cur_auc:
+                        cur_auc = y_new_minus
+                        parameter_values[param] -= step_size[param]
+                        single_param_change = 1
+                        made_one_change = 1
+
+        return made_one_change, single_param_change, parameter_values, cur_auc, ca_X, ca_Y
+
+    def run_param_change(type, made_one_change, parameter_values, param, cur_auc, ca_X, ca_Y):
+        # loops as long as you can continue moving on this parameter (coordinate) and still increase AUC
+        single_param_change = 1
+        while single_param_change == 1:
+            single_param_change = 0
+            iter_num = len(ca_Y)
+            print('iterarion number: ',iter_num)
+            # if exceeds max iteration number return
+            if max_iters > 0 and iter_num > max_iters: 
+                made_one_change = 0
+                return made_one_change, parameter_values, cur_auc, ca_X, ca_Y
+
+            # non-boolen parameters are run with different step size (1,...,t)
+            sys.stderr.write(f"Updating {param}, type: {type[param]} \n")
+            made_one_change, single_param_change, parameter_values, cur_auc, ca_X, ca_Y = update_one_param(
+                made_one_change, single_param_change, param, parameter_values, step_size, cur_auc, num_threads, ca_X, ca_Y
+                )
+            
+        return made_one_change, parameter_values, cur_auc, ca_X, ca_Y
 
     # initialize and gets default AUC
     print('get default auc in ca_warmup')
@@ -370,111 +378,32 @@ def coordinate_ascent_warmup_yaml(f, max_iters=60,path='',num_threads = 1):
     ca_Y = []
     ca_Y.append(cur_auc)
 
+    # full loop starts here
+    print('starting ca_warmup-----')
     # loops as long as you were able to decrease one of the step sizes
-    print('starting ca_warmup')
     decreased_steps = 1
     while decreased_steps == 1:
         decreased_steps = 0
-        made_one_change = 1
 
         # loops as long as you have made a change in the parameter vector
         # without a change in step size
+        made_one_change = 1
         while made_one_change == 1:
             made_one_change = 0
+
+            # loops as long as you can continue moving on this parameter (coordinate) and still increase AUC
             for param in sorted(list(type.keys())): 
-                print("best current auc:",cur_auc)
+                print("best current auc:", cur_auc)
+                # try to change every parameter once and accmulate changes
+                made_one_change, parameter_values, cur_auc, ca_X, ca_Y = run_param_change(
+                        type, made_one_change, parameter_values, param, cur_auc, ca_X, ca_Y
+                    )
 
-                # loops as long as you can continue moving on this parameter (coordinate) and still increase AUC
-                single_param_change = 1
-                while single_param_change == 1:
-                    single_param_change = 0
-
-                    iter_num = len(ca_Y)
-                    print('iterarion number: ',iter_num)
-                    if max_iters > 0 and iter_num > max_iters: return (ca_X,ca_Y)
-
-                    # non-boolen parameters are run with different step size (1,...,t)
-                    sys.stderr.write(f"Updating {param}, type: {type[param]} \n")
-                    if type[param] != "bool":
-                        x_new_plus = np.zeros((0,f.dim))
-                        x_new_minus = np.zeros((0,f.dim))
-                        y_new_plus = np.zeros((0))
-                        y_new_minus = np.zeros((0))
-                        change_index = []
-                        for t in range(1, num_threads + 1):
-                            # increase parameter case
-                            # check point before running scallop
-                            if check_with_one_change(param, parameter_values[param] + (t * step_size[param]), "check") == 1:
-                                x_new = check_with_one_change(param, parameter_values[param] + (t * step_size[param]), "")
-                                x_new_plus = np.vstack((x_new_plus,x_new))
-                                change_index.append(t)
-                            # else check==0: something should not be run to avoid error
-                            # do nothing
-                        if np.shape(x_new_plus)[0] > 0: # at least one combination passed check
-                            print('would try plus combination:',x_new_plus)
-                            ca_X = np.vstack((ca_X, x_new_plus))
-                            y_new_plus = f.compute(x_new_plus, normalize=f.normalize, software_path=path)
-                        
-                        for t in range(1, num_threads + 1):
-                            # decrease parameter case
-                            if check_with_one_change(param, parameter_values[param] - (t * step_size[param]), "check") == 1:
-                                x_new = check_with_one_change(param, parameter_values[param] - (t * step_size[param]), "")
-                                x_new_minus = np.vstack((x_new_minus,x_new))
-                                change_index.append((-1)*t)
-                            # else check ==0: something should not be run to avoid error
-                            # do nothing
-                        if np.shape(x_new_minus)[0] > 0: # at least one combination passed check
-                            print('would try minus combination:',x_new_minus)
-                            ca_X = np.vstack((ca_X, x_new_minus))
-                            y_new_minus = f.compute(x_new_minus, normalize=f.normalize, software_path=path)
-
-                        print("Num threads running: " + str(len(x_new_plus)+len(x_new_minus)))
-                        
-                        #update best auc
-                        max_change = 0
-                        y_new = np.hstack((y_new_plus, y_new_minus))
-                        ca_Y = np.append(ca_Y, y_new)
-                        for i in range(len(y_new)):
-                            if y_new[i] < cur_auc:
-                                cur_auc = y_new[i]
-                                max_change = change_index[i]
-                                single_param_change = 1
-                                made_one_change = 1
-                        #update parameter based on best auc
-                        parameter_values[param] += max_change * step_size[param]
-
-
-                    #boolean parameters since only one will ever need to be run.
-                    else:
-                        # increase cagetory type by 1
-                        if check_with_one_change(param,parameter_values[param]+step_size[param],'check')==1:
-                            x_new_plus = check_with_one_change(param, parameter_values[param]+step_size[param], '')
-                            y_new_plus = float(f.compute(x_new_plus, normalize=f.normalize, software_path=path))
-                            ca_X = np.vstack((ca_X, x_new_plus))
-                            ca_Y = np.append(ca_Y, y_new_plus)
-                            if y_new_plus < cur_auc:
-                                cur_auc = y_new_plus
-                                parameter_values[param] += step_size[param]
-                                single_param_change = 1
-                                made_one_change = 1
-                        # decrease cagetory type by 1
-                        else:
-                            if check_with_one_change(param,parameter_values[param]-step_size[param],'check')==1:
-                                x_new_minus = check_with_one_change(param, parameter_values[param]-step_size[param], '')
-                                y_new_minus = float(f.compute(x_new_minus, normalize=f.normalize, software_path=path))
-                                ca_X = np.vstack((ca_X, x_new_minus))
-                                ca_Y = np.append(ca_Y, y_new_minus)
-                                if y_new_minus < cur_auc:
-                                    cur_auc = y_new_minus
-                                    parameter_values[param] -= step_size[param]
-                                    single_param_change = 1
-                                    made_one_change = 1
-
-        # corresponding to last statement in perl script
+        # statement here only to match Perl function
         break
 
         # decrease step sizes as long as you can without the steps being too small 
-        # (0.01 and 1 for float and int/bool)
+        # dead code, not used when break is applied 
         for param in sorted(list(type.keys())): 
             if type[param] == 'int':
                 temp = int(step_size[param] * 0.75)
@@ -490,3 +419,200 @@ def coordinate_ascent_warmup_yaml(f, max_iters=60,path='',num_threads = 1):
                     decreased_steps = 1
 
     return (ca_X,ca_Y)
+
+
+
+#-------------Coordinate Ascent class---------------
+class CoordinateAscent():
+    def __init__(self, f, max_iters=60, num_threads=1, path=''):
+        '''
+        acheived same function of Perl script
+        f: blackbox function, e.g Scallop()
+        max_iters: max iteration allowed from ca_warmup
+        num_threads: controls the number of parallel steps to take in each direction
+        path: system path to blackbox software
+        '''
+        self.f = f 
+        self.max_iters = max_iters
+        self.num_threads = num_threads
+        self.path = path
+
+        # get same variables as perl script
+        self.parameter_values = copy.deepcopy(f.parameter_values)
+        self.step_size = copy.deepcopy(f.step_size)
+        self.type = copy.deepcopy(f.para_type)
+
+    def check_with_one_change(self, param_to_change, param_value, check):
+        # get param position in unsorted parameter list
+        pos = self.f.para_to_index[param_to_change]
+        # change param and check if within bounds
+        if check == 'check':
+            # cag param should between 0-1
+            if param_value!='' and self.type[param_to_change]=='cag': 
+                if param_value>1 or param_value<0:
+                    return 0
+            # int and float param should between hard lower bound and hard upper bound
+            elif param_value!='' and self.type[param_to_change]!='cag':
+                if float(param_value) > self.f.hard_ub[pos] or float(param_value) < self.f.hard_lb[pos]:
+                    return 0
+            # if got here and in check mode, means check is passed
+            return 1
+        # if not in check mode, return parameter array need to run
+        else:
+            # ensures the floating point parameters don't get too complex
+            if self.type[param_to_change] == 'float':
+                param_value = float(format(param_value, '.2f'))
+            # use index position to find the 'parameter to change'
+            x_new = [param_value if p==param_to_change else self.parameter_values[p] for p in list(self.type.keys())]
+            return x_new
+
+    def compute_nonboolen_changes(self, param, change_index, direction, ca_X):
+        x_new_change = np.zeros((0, self.f.dim))
+        y_new_change = np.zeros((0))
+        for t in range(1, self.num_threads + 1):
+            # check point before running scallop
+            parameter_value_new = self.parameter_values[param] + direction * (t * self.step_size[param])
+            if self.check_with_one_change(param, parameter_value_new, "check") == 1:
+                x_new = self.check_with_one_change(param, parameter_value_new, "")
+                x_new_change = np.vstack((x_new_change,x_new))
+                change_index.append(direction * t)
+                # else check==0: something should not be run to avoid error
+                # do nothing
+        if np.shape(x_new_change)[0] > 0: # at least one combination passed check
+            print('would try combination:',x_new_change)
+            ca_X = np.vstack((ca_X, x_new_change))
+            y_new_change = self.f.compute(x_new_change, normalize=self.f.normalize, \
+                                            software_path=self.path)
+
+        return x_new_change, y_new_change, ca_X
+
+    def update_one_param(self, param, cur_auc, ca_X, ca_Y):
+        # non-boolean parameters: run values at parallel step size 
+        if self.type[param] != "bool":
+            change_index = []
+
+            # increase with direction 1 and decrease with direction -1
+            x_new_plus, y_new_plus, ca_X = self.compute_nonboolen_changes(param, \
+                                            change_index, 1, ca_X)
+            x_new_minus, y_new_minus, ca_X = self.compute_nonboolen_changes(param, \
+                                            change_index, -1, ca_X)
+            y_new = np.hstack((y_new_plus, y_new_minus))
+            ca_Y = np.append(ca_Y, y_new)
+            print("Num threads running: " + str(len(x_new_plus)+len(x_new_minus)))
+            
+            #update best auc
+            max_change = 0
+            for i in range(len(y_new)):
+                if y_new[i] < cur_auc:
+                    cur_auc = y_new[i]
+                    max_change = change_index[i]
+                    self.single_param_change = 1
+                    self.made_one_change = 1
+            #update parameter based on best auc
+            self.parameter_values[param] += max_change * self.step_size[param]
+
+        #boolean parameters since only one will ever need to be run.
+        else:
+            # increase cagetory type by 1
+            parameter_value_new = self.parameter_values[param] + self.step_size[param]
+            if self.check_with_one_change(param, parameter_value_new, 'check')==1:
+                x_new_plus = self.check_with_one_change(param, parameter_value_new, '')
+                y_new_plus = float(self.f.compute(x_new_plus, normalize=self.f.normalize, \
+                                                software_path=self.path))
+                ca_X = np.vstack((ca_X, x_new_plus))
+                ca_Y = np.append(ca_Y, y_new_plus)
+                # update best auc
+                if y_new_plus < cur_auc:
+                    cur_auc = y_new_plus
+                    self.parameter_values[param] += self.step_size[param]
+                    self.single_param_change = 1
+                    self.made_one_change = 1
+
+            # decrease cagetory type by 1
+            else:
+                parameter_value_new = self.parameter_values[param] - self.step_size[param]
+                if self.check_with_one_change(param, parameter_value_new, 'check')==1:
+                    x_new_minus = self.check_with_one_change(param, parameter_value_new, '')
+                    y_new_minus = float(self.f.compute(x_new_minus, normalize=self.f.normalize, \
+                                                        software_path=self.path))
+                    ca_X = np.vstack((ca_X, x_new_minus))
+                    ca_Y = np.append(ca_Y, y_new_minus)
+                    # update best auc
+                    if y_new_minus < cur_auc:
+                        cur_auc = y_new_minus
+                        self.parameter_values[param] -= self.step_size[param]
+                        self.single_param_change = 1
+                        self.made_one_change = 1
+
+        return cur_auc, ca_X, ca_Y
+
+    def run_param_change(self, param, cur_auc, ca_X, ca_Y):
+        ''''''
+        # loops as long as you can continue moving on this parameter (coordinate) and still increase AUC
+        self.single_param_change = 1
+        while self.single_param_change == 1:
+            self.single_param_change = 0
+            iter_num = len(ca_Y)
+            print('iterarion number: ',iter_num)
+            # if exceeds max iteration number return
+            if self.max_iters > 0 and iter_num > self.max_iters: 
+                self.made_one_change = 0
+                return cur_auc, ca_X, ca_Y
+
+            # compute auc based on one param change
+            sys.stderr.write(f"Updating {param}, type: {self.type[param]} \n")
+            cur_auc, ca_X, ca_Y = self.update_one_param(param, cur_auc, ca_X, ca_Y)
+            
+        return cur_auc, ca_X, ca_Y
+
+
+    # main function
+    def coordinate_ascent_warmup_yaml(self):
+        # initialize and gets default AUC
+        print('get default auc in ca_warmup')
+        ca_X = np.zeros((0,self.f.dim))
+        ca_X = np.vstack((ca_X,self.f.default))
+        cur_auc = float(self.f.compute(self.f.default, normalize=self.f.normalize, \
+                                        software_path=self.path))
+        ca_Y = []
+        ca_Y.append(cur_auc)
+
+        # full loop starts here
+        print('starting ca_warmup-----')
+        # loops as long as you were able to decrease one of the step sizes
+        self.decreased_steps = 1
+        while self.decreased_steps == 1:
+            self.decreased_steps = 0
+
+            # loops as long as you have made a change in the parameter vector
+            # without a change in step size
+            self.made_one_change = 1
+            while self.made_one_change == 1:
+                self.made_one_change = 0
+
+                # loops as long as you can continue moving on this parameter (coordinate) and still increase AUC
+                for param in sorted(list(self.type.keys())): 
+                    print("best current auc:", cur_auc)
+                    # try to change every parameter once and accmulate changes
+                    cur_auc, ca_X, ca_Y = self.run_param_change(param, cur_auc, ca_X, ca_Y)
+
+            # statement here only to match Perl function
+            break
+
+            # decrease step sizes as long as you can without the steps being too small 
+            # dead code, not used when break is applied 
+            for param in sorted(list(type.keys())): 
+                if self.type[param] == 'int':
+                    temp = int(self.step_size[param] * 0.75)
+                    temp = temp if temp < self.step_size[param] - 1 else self.step_size[param] - 1
+                    if temp > 0:
+                        self.step_size[param] = temp
+                        self.decreased_steps = 1
+                if type[param] == 'float':
+                    temp = format(self.step_size[param] * 0.75, '.2f')
+                    temp = float(temp) if float(temp) < self.step_size[param] - 0.01 else self.step_size[param] - 0.01
+                    if temp > 0:
+                        self.step_size[param] = temp
+                        self.decreased_steps = 1
+
+        return (ca_X,ca_Y)
