@@ -258,7 +258,8 @@ class CoordinateAscent():
 
     def check_with_one_change(self, param_to_change, param_value, check):
         # get param position in unsorted parameter list
-        pos = self.f.para_to_index[param_to_change]
+        index = self.f.para_to_index[param_to_change]
+        index_within_ub_lb = np.where(self.f.continuous_dims==index)
         # change param and check if within bounds
         if check == 'check':
             # cag param should between 0-1
@@ -267,7 +268,8 @@ class CoordinateAscent():
                     return 0
             # int and float param should between hard lower bound and hard upper bound
             elif param_value!='' and self.type[param_to_change]!='cag':
-                if float(param_value) > self.f.hard_ub[pos] or float(param_value) < self.f.hard_lb[pos]:
+                if float(param_value) > self.f.hard_ub[index_within_ub_lb] or \
+                    float(param_value) < self.f.hard_lb[index_within_ub_lb]:
                     return 0
             # if got here and in check mode, means check is passed
             return 1
