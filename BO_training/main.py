@@ -131,11 +131,8 @@ for t in range(args.n_trials):
 
     # Perl re-implement
     if args.cawarmup > 0:
-        #x_next,y_next = coordinate_ascent_warmup_yaml(f, max_iters=args.cawarmup, 
-        #                        path=args.software_path, num_threads = 1)
         ca = CoordinateAscent(f, max_iters=args.cawarmup, num_threads=1, path=args.software_path)
         x_next, y_next = ca.coordinate_ascent_warmup_yaml()
-        print(x_next, y_next)
         # search space is not ajust on cag parameters 
         x_next_min = x_next[np.array(y_next).argmin()]
         x_next_cont = np.array([])
