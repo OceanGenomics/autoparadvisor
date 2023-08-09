@@ -256,31 +256,30 @@ class CoordinateAscent():
         self.step_size = copy.deepcopy(f.step_size)
         self.type = copy.deepcopy(f.para_type)
 
-    def check_with_one_change(self, param_to_change, param_value, check):
+    def check_with_one_change(self, param_to_change, param_value):
         # get param position in unsorted parameter list
         index = self.f.para_to_index[param_to_change]
         index_within_ub_lb = np.where(self.f.continuous_dims==index)
         # change param and check if within bounds
-        if check == 'check':
-            # cag param should between 0-1
-            if param_value!='' and self.type[param_to_change]=='cag': 
-                if param_value>1 or param_value<0:
-                    return 0
-            # int and float param should between hard lower bound and hard upper bound
-            elif param_value!='' and self.type[param_to_change]!='cag':
-                if float(param_value) > self.f.hard_ub[index_within_ub_lb] or \
-                    float(param_value) < self.f.hard_lb[index_within_ub_lb]:
-                    return 0
-            # if got here and in check mode, means check is passed
-            return 1
-        # if not in check mode, return parameter array need to run
-        else:
-            # ensures the floating point parameters don't get too complex
-            if self.type[param_to_change] == 'float':
-                param_value = float(format(param_value, '.2f'))
-            # use index position to find the 'parameter to change'
-            x_new = [param_value if p==param_to_change else self.parameter_values[p] for p in list(self.type.keys())]
-            return x_new
+        # cag param should between 0-1
+        if param_value!='' and self.type[param_to_change]=='cag': 
+            if param_value>1 or param_value<0:
+                return 0
+        # int and float param should between hard lower bound and hard upper bound
+        elif param_value!='' and self.type[param_to_change]!='cag':
+            if float(param_value) > self.f.hard_ub[index_within_ub_lb] or \
+                float(param_value) < self.f.hard_lb[index_within_ub_lb]:
+                return 0
+        # if got here and in check mode, means check is passed
+        return 1
+
+    def run_with_one_change(self, param_to_change, param_value):
+        # ensures the floating point parameters don't get too complex
+        if self.type[param_to_change] == 'float':
+            param_value = float(format(param_value, '.2f'))
+        # use index position to find the 'parameter to change'
+        x_new = [param_value if p==param_to_change else self.parameter_values[p] for p in list(self.type.keys())]
+        return x_new
 
     def compute_nonboolen_changes(self, param, change_index, direction, ca_X):
         x_new_change = np.zeros((0, self.f.dim))
@@ -288,8 +287,8 @@ class CoordinateAscent():
         for t in range(1, self.num_threads + 1):
             # check point before running scallop
             parameter_value_new = self.parameter_values[param] + direction * (t * self.step_size[param])
-            if self.check_with_one_change(param, parameter_value_new, "check") == 1:
-                x_new = self.check_with_one_change(param, parameter_value_new, "")
+            if self.check_with_one_change(param, parameter_value_new) == 1:
+                x_new = self.run_with_one_change(param, parameter_value_new)
                 x_new_change = np.vstack((x_new_change,x_new))
                 change_index.append(direction * t)
                 # else check==0: something should not be run to avoid error
@@ -331,8 +330,8 @@ class CoordinateAscent():
         else:
             # increase cagetory type by 1
             parameter_value_new = self.parameter_values[param] + self.step_size[param]
-            if self.check_with_one_change(param, parameter_value_new, 'check')==1:
-                x_new_plus = self.check_with_one_change(param, parameter_value_new, '')
+            if self.check_with_one_change(param, parameter_value_new)==1:
+                x_new_plus = self.run_with_one_change(param, parameter_value_new)
                 y_new_plus = float(self.f.compute(x_new_plus, normalize=self.f.normalize, \
                                                 software_path=self.path))
                 ca_X = np.vstack((ca_X, x_new_plus))
@@ -347,8 +346,8 @@ class CoordinateAscent():
             # decrease cagetory type by 1
             else:
                 parameter_value_new = self.parameter_values[param] - self.step_size[param]
-                if self.check_with_one_change(param, parameter_value_new, 'check')==1:
-                    x_new_minus = self.check_with_one_change(param, parameter_value_new, '')
+                if self.check_with_one_change(param, parameter_value_new)==1:
+                    x_new_minus = self.run_with_one_change(param, parameter_value_new)
                     y_new_minus = float(self.f.compute(x_new_minus, normalize=self.f.normalize, \
                                                         software_path=self.path))
                     ca_X = np.vstack((ca_X, x_new_minus))
