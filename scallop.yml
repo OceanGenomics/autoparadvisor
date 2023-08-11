@@ -2,44 +2,67 @@
 #path/software [input_command <input.bam>] [other_options] [output_command <output.gtf>]
 command_format: ''
 
-#initial option of assemble software
-initial_option:
-  name: scallop
-  input_option: ' -i '
-  output_option: ' -o '
-  #software specific option
-  additional_option: ' --verbose 0 --min_transcript_coverage 0 --library_type empty'
+#full commands for black-box software
+#formats the specified value(s) and insert them inside the string's placeholder.
+#The placeholder is defined using curly brackets: {}
+#The placeholder should appear excatly once in the same section
+testing_software:
+  format: '{path} {input_option} {input_file} {parameters} {output_option} {pid}{output_format} {additional_option}'
+  input_option: '-i'
+  output_option: '-o'
+  output_format: '.gtf'
+  pid: ''
+  additional_option: ' --verbose 0 --min_transcript_coverage 0 --library_type empty > /dev/null 2>&1'
 
 
 #parameters for choosed software
 #for catagory parameters, usage TF: 0 False 1 True / turn_on: 0 not use parameter 1 turn on parameter
 parameter_bounds:
-  - uniquely_mapped_only: {prefix: ' --', type: cag, usage: TF, min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1, step: 1}
-  - use_second_alignment: {prefix: ' --', type: cag, usage: TF, min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1, step: 1}
-  - max_dp_table_size: {prefix: ' --', type: int, min: 0, max: 100000, default: 10000, hard_min: 0, hard_max: float('inf'), step: 100000}
-  - max_edit_distance: {prefix: ' --', type: int, min: 0, max: 100, default: 10, hard_min: 0, hard_max: float('inf'), step: 20}
-  - max_num_exons: {prefix: ' --', type: int, min: 0, max: 10000, default: 1000, hard_min: 0, hard_max: float('inf'), step: 10000}
-  - min_bundle_gap: {prefix: ' --', type: int, min: 0, max: 500, default: 50, hard_min: 0, hard_max: float('inf'), step: 100}
-  - min_exon_length: {prefix: ' --', type: int, min: 0, max: 200, default: 20, hard_min: 0, hard_max: float('inf'), step: 100}
-  - min_flank_length: {prefix: ' --', type: int, min: 0, max: 30, default: 3, hard_min: 0, hard_max: float('inf'), step: 10}
-  - min_mapping_quality: {prefix: ' --', type: int, min: 0, max: 10, default: 1, hard_min: 0, hard_max: float('inf'), step: 10}
-  - min_num_hits_in_bundle: {prefix: ' --', type: int, min: 0, max: 200, default: 20, hard_min: 0, hard_max: float('inf'), step: 100}
-  - min_router_count: {prefix: ' --', type: int, min: 0, max: 10, default: 1, hard_min: 0, hard_max: float('inf'), step: 10}
-  - min_splice_boundary_hits: {prefix: ' --', type: int, min: 0, max: 10, default: 1, hard_min: 0, hard_max: float('inf'), step: 10}
-  - min_subregion_gap: {prefix: ' --', type: int, min: 0, max: 30, default: 3, hard_min: 0, hard_max: float('inf'), step: 10}
-  - min_subregion_length: {prefix: ' --', type: int, min: 0, max: 150, default: 15, hard_min: 0, hard_max: float('inf'), step: 20}
-  - min_transcript_length_base: {prefix: ' --', type: int, min: 0, max: 1500, default: 150, hard_min: 0, hard_max: float('inf'), step: 500}
-  - min_transcript_length_increase: {prefix: ' --', type: int, min: 0, max: 500, default: 50, hard_min: 0, hard_max: float('inf'), step: 100}
-  - max_intron_contamination_coverage: {prefix: ' --', type: float, min: 0.0, max: 20.0, default: 2.0, hard_min: 0, hard_max: float('inf'), step: 10}
-  - min_subregion_overlap: {prefix: ' --', type: float, min: 0.0, max: 15.0, default: 1.5, hard_min: 0, hard_max: float('inf'), step: 10}
+  - uniquely_mapped_only: {prefix: '--uniquely_mapped_only', type: cag, usage: TF, label: ['true', 'false'], min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1, step: 1}
+  - use_second_alignment: {prefix: '--use_second_alignment', type: cag, usage: TF, label: ['true', 'false'], min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1, step: 1}
+  - max_dp_table_size: {prefix: '--max_dp_table_size', type: int, min: 0, max: 100000, default: 10000, hard_min: 0, hard_max: 'inf', step: 100000}
+  - max_edit_distance: {prefix: '--max_edit_distance', type: int, min: 0, max: 100, default: 10, hard_min: 0, hard_max: 'inf', step: 20}
+  - max_num_exons: {prefix: '--max_num_exons', type: int, min: 0, max: 10000, default: 1000, hard_min: 0, hard_max: 'inf', step: 10000}
+  - min_bundle_gap: {prefix: '--min_bundle_gap', type: int, min: 0, max: 500, default: 50, hard_min: 0, hard_max: 'inf', step: 100}
+  - min_exon_length: {prefix: '--min_exon_length', type: int, min: 0, max: 200, default: 20, hard_min: 0, hard_max: 'inf', step: 100}
+  - min_flank_length: {prefix: '--min_flank_length', type: int, min: 0, max: 30, default: 3, hard_min: 0, hard_max: 'inf', step: 10}
+  - min_mapping_quality: {prefix: '--min_mapping_quality', type: int, min: 0, max: 10, default: 1, hard_min: 0, hard_max: 'inf', step: 10}
+  - min_num_hits_in_bundle: {prefix: '--min_num_hits_in_bundle', type: int, min: 0, max: 200, default: 20, hard_min: 0, hard_max: 'inf', step: 100}
+  - min_router_count: {prefix: '--min_router_count', type: int, min: 0, max: 10, default: 1, hard_min: 0, hard_max: 'inf', step: 10}
+  - min_splice_boundary_hits: {prefix: '--min_splice_boundary_hits', type: int, min: 0, max: 10, default: 1, hard_min: 0, hard_max: 'inf', step: 10}
+  - min_subregion_gap: {prefix: '--min_subregion_gap', type: int, min: 0, max: 30, default: 3, hard_min: 0, hard_max: 'inf', step: 10}
+  - min_subregion_length: {prefix: '--min_subregion_length', type: int, min: 0, max: 150, default: 15, hard_min: 0, hard_max: 'inf', step: 20}
+  - min_transcript_length_base: {prefix: '--min_transcript_length_base', type: int, min: 0, max: 1500, default: 150, hard_min: 0, hard_max: 'inf', step: 500}
+  - min_transcript_length_increase: {prefix: '--min_transcript_length_increase', type: int, min: 0, max: 500, default: 50, hard_min: 0, hard_max: 'inf', step: 100}
+  - max_intron_contamination_coverage: {prefix: '--max_intron_contamination_coverage', type: float, min: 0.0, max: 20.0, default: 2.0, hard_min: 0, hard_max: 'inf', step: 10}
+  - min_subregion_overlap: {prefix: '--min_subregion_overlap', type: float, min: 0.0, max: 15.0, default: 1.5, hard_min: 0, hard_max: 'inf', step: 10}
     
 
 
-#working directory for eval software
-#input the path for your installed path
-gffcompare:
-  directory: /data008/users/zyan/software/gffcompare/gffcompare
-  command: ' -r '
-gtfcuff:
-  directory: /data008/users/zyan/software/rnaseqtools-1.0.3/gtfcuff/gtfcuff
-  command: ' auc '
+#user defined evaluation steps
+#formats the specified value(s) and insert them inside the string's placeholder.
+#The placeholder is defined using curly brackets: {}
+#The placeholder should appear excatly once in the same section
+evaluation:
+  - 
+    format: "{path} {command} {ref_file} ./{pid}.gtf"
+    path: '/home/zyan/software/gffcompare/gffcompare'
+    command: '-r'
+    ref_file: '/data008/users/zyan/encode10/GRCh38.gtf'
+    pid: ''
+  - 
+    format: "{path} {command} ./gffcmp.{pid}.gtf.tmap {transcript_num} | tee ./{pid}.auc"
+    path: '/data008/users/zyan/software/rnaseqtools-1.0.3/gtfcuff/gtfcuff'
+    command: 'auc'
+    transcript_num: '197649'
+    pid: ''
+
+precheck:
+  check_command: grep -c '^chr' {}.gtf
+  excute_command: sed -i 's/^chr//' {}.gtf
+
+postcheck:
+  #shell command to grep auc from output file
+  auc_command: grep -P -o '(?<=auc =)[ 0-9.]*' {}.auc
+  #if you want to remove any file produced in process with specific pid
+  clear_command: rm *{}*

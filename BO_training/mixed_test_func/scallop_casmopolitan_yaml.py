@@ -26,14 +26,12 @@ def Scallop_base(index,x,Result,ref_file,input_file,software_path,docs):
         #TF stands for True/False usage (in scallop)
         #turn_on stands for use/not use usage (in stringtie)
         if parameter_type=='cag': 
+            list = parameter[parameter_name]['label']
+            cag_label = list[int(x[i])]
             if parameter[parameter_name]['usage']=='TF':
-                if int(x[i])==0:
-                    pcmd = ' '.join([pcmd, parameter[parameter_name]['prefix'], "false"])
-                else:
-                    pcmd = ' '.join([pcmd, parameter[parameter_name]['prefix'], "true"])
+                pcmd = ' '.join([pcmd, parameter[parameter_name]['prefix'], cag_label])
             elif parameter[parameter_name]['usage']=='turn_on':
-                if int(x[i])==1:
-                    pcmd = ' '.join([pcmd, parameter[parameter_name]['prefix']])
+                pcmd = ' '.join([pcmd, cag_label])
         #for continous type parameter (int)
         elif parameter_type=='int':
             pcmd = ' '.join([pcmd, parameter[parameter_name]['prefix'], str(int(x[i]))])
@@ -127,8 +125,10 @@ class Scallop(TestFunction):
         int_constrained_dims = []
         hard_lb = []
         hard_ub = []
+        n_vertices = []
         
         for i in range(len(parameter_bounds)):
+            #single parameter dict that stores all information for one param
             parameter = parameter_bounds[i]
             parameter_name = list(parameter.keys())[0]
             parameter_type = parameter[parameter_name]['type']
@@ -140,6 +140,7 @@ class Scallop(TestFunction):
 
             if (parameter_type=='cag'):
                 categorical_dims.append(i)
+                n_vertices.append(len(parameter[parameter_name]['label']))
             else:
                 hard_lb.append(float(parameter[parameter_name]['hard_min']))
                 hard_ub.append(float(parameter[parameter_name]['hard_max']))
@@ -154,6 +155,7 @@ class Scallop(TestFunction):
         self.int_constrained_dims = np.asarray(int_constrained_dims) if len(int_constrained_dims)!=0 else None
         self.hard_lb = np.array(hard_lb)
         self.hard_ub = np.array(hard_ub)
+        self.n_vertices = np.array(n_vertices)
         
         ##specify the domain boundary
         lb = []
@@ -174,9 +176,7 @@ class Scallop(TestFunction):
         self.lb = np.array(lb)
         self.ub = np.array(ub)
         
-        #TODO: now only support binary cag parameters
-        #original code: self.vertices = np.array([2,2])
-        self.n_vertices = np.array(len(categorical_dims)*[2])
+        #TODO: now support multi cag parameters
         self.config = self.n_vertices
         
         #self.lamda = lamda

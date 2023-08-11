@@ -22,8 +22,8 @@ parameter_bounds:
   - j: {prefix: '-j', type: float, min: 0, max: 10, default: 1, hard_min: 0, hard_max: 'inf', step: 10}
   - g: {prefix: '-g', type: int, min: 0, max: 500, default: 50, hard_min: 0, hard_max: 'inf', step: 500}
   - M: {prefix: '-M', type: float, min: 0, max: 1, default: 1, hard_min: 0, hard_max: 1, step: 10.0}
-  - u: {prefix: '-u', type: cag, usage: turn_on, min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1, step: 1}
-  - t: {prefix: '-t', type: cag, usage: turn_on, min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1, step: 1}
+  - u: {prefix: '-u', type: cag, usage: turn_on, label: ['', '-u'], min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1, step: 1}
+  - t: {prefix: '-t', type: cag, usage: turn_on, label: ['', '-t'], min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1, step: 1}
     
 
 
