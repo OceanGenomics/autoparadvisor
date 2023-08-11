@@ -2,6 +2,7 @@ from test_funcs import *
 from mixed_test_func import *
 from bo.optimizer import Optimizer
 from bo.optimizer_mixed import MixedOptimizer
+from bo.optimizer_cont import ContOptimizer
 import logging
 import argparse
 import os,pdb
@@ -35,7 +36,7 @@ parser.add_argument('--bamid',type=str,default="",help='ID of the bam file')
 parser.add_argument('--input_file',type=str, default=None, help='the input file/files of software')
 parser.add_argument('--ref_file',type=str,default='',help='reference file for assembler software, gtf format')
 parser.add_argument('--software_path',type=str,default='',help='The path of the testing blackbox software')
-parser.add_argument('--sub_sample',type=float,default=1.0,help='Sampling rate of the scallop')
+parser.add_argument('--param_type',type=str,default='mixed',help='parameter type can be category or continuous or mixed')
 
 
 args = parser.parse_args()
@@ -103,35 +104,35 @@ for t in range(args.n_trials):
         raise ValueError('Unrecognised problem type %s' % args.problem)
 
     n_categories = f.n_vertices
-    problem_type = f.problem_type
+    problem_type = args.param_type
 
     print('----- Starting trial %d / %d -----' % ((t + 1), args.n_trials))
     res = pd.DataFrame(np.nan, index=np.arange(int(args.max_iters*args.batch_size)),
                        columns=['Index', 'LastValue', 'BestValue', 'Time'])
+    # handle random noise
     if args.infer_noise_var: 
         noise_variance = None
     else: 
         noise_variance = f.lamda if hasattr(f, 'lamda') else None
 
+    #choose correct kernal based on input parameter types
     if args.kernel_type is None:  
-        kernel_type = 'mixed' if problem_type == 'mixed' else 'transformed_overlap'
+        if problem_type == 'mixed':
+            kernel_type = 'mixed'
+        elif problem_type == 'category':
+            kernel_type = 'transformed_overlap'
+        elif problem_type == 'continuous':
+            kernel_type = 'continuous'
+        else:
+            raise ValueError('cannot define kernal type without specify parameter type')
+    #if kernal type is specified at the beginning
     else: 
         kernel_type = args.kernel_type
 
+    # Perl re-implement
     if args.cawarmup > 0:
-        #NOTE: f.library_type is changed to f.num_transcript, f.library_type is coded in YAML
-        if(args.sub_sample<1):
-            cmd = 'perl ca_warmup_yaml.pl ./warmup_' + args.bamid + "_subsample_" + str(args.sub_sample) + \
-                 " " + f.input_file + " " + str(f.num_transcripts) + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.software_path + " " + str(args.sub_sample)
-        else:
-            cmd = 'perl ca_warmup_yaml.pl ./warmup_' + args.bamid + "_subsample_" + str(args.sub_sample) + \
-                 " " + f.input_file + " " + str(f.num_transcripts) + " " + f.ref_file + " 1 " + str(args.cawarmup) + " " + args.software_path
-        print(cmd)
-        os.system(cmd)
-        x_next,y_next = f.read_warmup_info("./warmup_" + args.bamid + "_subsample_" + str(args.sub_sample) + "/")
-        #adjust the search space
-        #pdb.set_trace()
-        #NOTE: extract cont/int parameter order according to YAML config
+        ca = CoordinateAscent(f, max_iters=args.cawarmup, num_threads=1, path=args.software_path)
+        x_next, y_next = ca.coordinate_ascent_warmup_yaml()
         # search space is not ajust on cag parameters 
         x_next_min = x_next[np.array(y_next).argmin()]
         x_next_cont = np.array([])
@@ -140,7 +141,7 @@ for t in range(args.n_trials):
         f.ub = np.maximum(x_next_cont*2,f.ub)
         #if upperbound was changed by cawarmup make sure is below hard ub
         f.ub = np.minimum(f.ub, f.hard_ub)
-        #pdb.set_trace()
+
 
     if problem_type == 'mixed':
         optim = MixedOptimizer(f.config, f.lb, f.ub, f.continuous_dims, f.categorical_dims, int_constrained_dims=f.int_constrained_dims,
@@ -148,27 +149,31 @@ for t in range(args.n_trials):
                                kernel_type=kernel_type,
                                noise_variance=noise_variance,
                                **kwargs)
-    else:
+    # add only continuous param case
+    elif problem_type == 'continuous':
+        optim = ContOptimizer(f.config, f.lb, f.ub, f.continuous_dims, int_constrained_dims=f.int_constrained_dims,
+                               default_x=f.default, n_init=args.n_init, use_ard=args.ard, acq=args.acq,
+                               kernel_type=kernel_type,
+                               noise_variance=noise_variance,
+                               **kwargs)
+    elif problem_type == 'category':
         optim = Optimizer(f.config, default_x=f.default, n_init=args.n_init, use_ard=args.ard, acq=args.acq,
                           kernel_type=kernel_type,
                           noise_variance=noise_variance, **kwargs)
+    else:
+        raise ValueError('Unsupported parameter type %s' % args.param_type)
 
     T_array = []
     start = time.time()
     #pdb.set_trace()
     if args.cawarmup >0:
         _ = optim.suggest(args.batch_size)
-        #cmd = 'perl ca_warmup.pl ./warmup_' + args.bamid + " " + f.bam_file + " " + f.library_type + " " + f.ref_file + " 1 " + str(args.n_init)
-        #print(cmd)
-        #os.system(cmd)
-        #x_next,y_next = read_warmup_info("./warmup_" + args.bamid + "/")
-        # adjust the search space
         #x_next,y_next = coordinate_ascent_warmup(f,fold_step=5,iterations=args.n_init)
         optim.observe(x_next, y_next)
         n_init_num = len(y_next)
     else:
         x_next = optim.suggest(args.batch_size)
-        y_next = f.compute(x_next, normalize=f.normalize,software_path=args.software_path,subsamp=args.sub_sample)
+        y_next = f.compute(x_next, normalize=f.normalize,software_path=args.software_path)
         optim.observe(x_next, y_next)
         n_init_num = args.n_init
     end = time.time()
@@ -177,7 +182,7 @@ for t in range(args.n_trials):
         #pdb.set_trace()
         start = time.time()
         x_next = optim.suggest(args.batch_size)
-        y_next = f.compute(x_next, normalize=f.normalize,software_path=args.software_path,subsamp=args.sub_sample)
+        y_next = f.compute(x_next, normalize=f.normalize,software_path=args.software_path)
         optim.observe(x_next, y_next)
         end = time.time()
         T_array.append(end - start)
@@ -216,6 +221,7 @@ for t in range(args.n_trials):
     np.save(args.save_path + "/" + args.problem + "_wall_clock_"+str(t+1)+".npy",np.array(T_array))
     np.save(args.save_path + "/" + args.problem + "_X_"+str(t+1)+".npy",optim.casmopolitan.X)
     np.save(args.save_path + "/" + args.problem + "_Y_"+str(t+1)+".npy",Y)
+    print('process done!')
 
     if args.seed is not None:
         args.seed += 1
