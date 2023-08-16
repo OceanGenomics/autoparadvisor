@@ -7,7 +7,7 @@ import subprocess
 import yaml
 import copy
 
-def Scallop_base(index,x,Result,ref_file,input_file,software_path,docs):
+def Scallop_base(index,x,Result,input_file,software_path,docs):
     pid = os.getpid()
     #NOTE: original scallop_bounds list is moved into YAML file
     #initial parameters for choosen software
@@ -26,8 +26,8 @@ def Scallop_base(index,x,Result,ref_file,input_file,software_path,docs):
         #TF stands for True/False usage (in scallop)
         #turn_on stands for use/not use usage (in stringtie)
         if parameter_type=='cag': 
-            list = parameter[parameter_name]['label']
-            cag_label = list[int(x[i])]
+            label_list = parameter[parameter_name]['label']
+            cag_label = label_list[int(x[i])]
             if parameter[parameter_name]['usage']=='TF':
                 pcmd = ' '.join([pcmd, parameter[parameter_name]['prefix'], cag_label])
             elif parameter[parameter_name]['usage']=='turn_on':
@@ -198,7 +198,7 @@ class Scallop(TestFunction):
             process_list = []
             for i in range(N):
                 tmp_process = multiprocessing.Process(target=Scallop_base, \
-                    args=(i,X[i],Y,self.ref_file,self.input_file,software_path,self.docs))
+                    args=(i,X[i],Y,self.input_file,software_path,self.docs))
                 process_list.append(tmp_process)
             for process in process_list:
                 process.start()
