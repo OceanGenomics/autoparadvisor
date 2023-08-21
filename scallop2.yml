@@ -18,8 +18,8 @@ testing_software:
 #parameters for choosed software
 #for catagory parameters, usage TF: 0 False 1 True / turn_on: 0 not use parameter 1 turn on parameter
 parameter_bounds:
-  - uniquely_mapped_only: {prefix: '--uniquely_mapped_only', type: cag, usage: TF, label: ['true', 'false'], min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1, step: 1}
-  - use_second_alignment: {prefix: '--use_second_alignment', type: cag, usage: TF, label: ['true', 'false'], min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1, step: 1}
+  - uniquely_mapped_only: {prefix: '--uniquely_mapped_only', type: cag, usage: TF, label: ['false', 'true'], min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1, step: 1}
+  - use_second_alignment: {prefix: '--use_second_alignment', type: cag, usage: TF, label: ['false', 'true'], min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1, step: 1}
   - max_dp_table_size: {prefix: '--max_dp_table_size', type: int, min: 0, max: 100000, default: 10000, hard_min: 0, hard_max: 'inf', step: 100000}
   - max_edit_distance: {prefix: '--max_edit_distance', type: int, min: 0, max: 100, default: 10, hard_min: 0, hard_max: 'inf', step: 20}
   - max_num_exons: {prefix: '--max_num_exons', type: int, min: 0, max: 10000, default: 1000, hard_min: 0, hard_max: 'inf', step: 10000}
