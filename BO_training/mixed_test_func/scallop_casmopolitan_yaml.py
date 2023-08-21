@@ -92,10 +92,10 @@ def Scallop_base(index,x,Result,input_file,software_path,docs):
 
 
 
-class Scallop(TestFunction):
+class Assembler(TestFunction):
 
     def __init__(self, input_file, normalize=False, boundary_fold = 0,ref_file=''):
-        super(Scallop,self).__init__(normalize)
+        super(Assembler,self).__init__(normalize)
         assert boundary_fold>=0
         self.input_file = input_file
         self.ref_file = ref_file
@@ -241,7 +241,7 @@ class CoordinateAscent():
     def __init__(self, f, max_iters=60, num_threads=1, path=''):
         '''
         acheived same function of Perl script
-        f: blackbox function, e.g Scallop()
+        f: blackbox function, e.g Assembler()
         max_iters: max iteration allowed from ca_warmup
         num_threads: controls the number of parallel steps to take in each direction
         path: system path to blackbox software

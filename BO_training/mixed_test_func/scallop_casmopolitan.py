@@ -35,7 +35,7 @@ Scallop_para_to_index = {"max_dp_table_size":0,"max_edit_distance":1,"max_intron
 }
 
 
-def Scallop(X,ref_file,num_transcripts,bam_file):
+def Assembler(X,ref_file,num_transcripts,bam_file):
     #pdb.set_trace()
     with Manager() as manager:
         Y = manager.list(range(X.size(0)))
@@ -120,10 +120,10 @@ def Scallop_base(index,x,Result,ref_file,num_transcripts,bam_file,library_type,s
 
 
 
-class Scallop(TestFunction):
+class Assembler(TestFunction):
     problem_type = 'mixed'
     def __init__(self, bam_file, normalize=False,boundary_fold = 0,ref_file='',library_type = 'empty'):
-        super(Scallop,self).__init__(normalize)
+        super(Assembler,self).__init__(normalize)
         assert boundary_fold>=0
         self.para_to_index = {}
         self.boundary_fold = boundary_fold
