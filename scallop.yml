@@ -1,6 +1,4 @@
 #the general usage of any assamble software
-#path/software [input_command <input.bam>] [other_options] [output_command <output.gtf>]
-command_format: ''
 
 #full commands for black-box software
 #formats the specified value(s) and insert them inside the string's placeholder.
@@ -16,10 +14,10 @@ testing_software:
 
 
 #parameters for choosed software
-#for catagory parameters, usage TF: 0 False 1 True / turn_on: 0 not use parameter 1 turn on parameter
+#for catagory parameters, usage labels:  False / True ; turn_on: not use parameter / turn on parameter
 parameter_bounds:
-  - uniquely_mapped_only: {prefix: '--uniquely_mapped_only', type: cag, usage: TF, label: ['false', 'true'], min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1, step: 1}
-  - use_second_alignment: {prefix: '--use_second_alignment', type: cag, usage: TF, label: ['false', 'true'], min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1, step: 1}
+  - uniquely_mapped_only: {prefix: '--uniquely_mapped_only', type: cag, usage: labels, label: ['false', 'true'], min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1, step: 1}
+  - use_second_alignment: {prefix: '--use_second_alignment', type: cag, usage: labels, label: ['false', 'true'], min: 0, max: 1, default: 0, hard_min: 0, hard_max: 1, step: 1}
   - max_dp_table_size: {prefix: '--max_dp_table_size', type: int, min: 0, max: 100000, default: 10000, hard_min: 0, hard_max: 'inf', step: 100000}
   - max_edit_distance: {prefix: '--max_edit_distance', type: int, min: 0, max: 100, default: 10, hard_min: 0, hard_max: 'inf', step: 20}
   - max_num_exons: {prefix: '--max_num_exons', type: int, min: 0, max: 10000, default: 1000, hard_min: 0, hard_max: 'inf', step: 10000}
@@ -61,7 +59,7 @@ precheck:
   check_command: grep -c '^chr' {}.gtf
   excute_command: sed -i 's/^chr//' {}.gtf
 
-postcheck:
+getauc:
   #shell command to grep auc from output file
   auc_command: grep -P -o '(?<=auc =)[ 0-9.]*' {}.auc
   #if you want to remove any file produced in process with specific pid
