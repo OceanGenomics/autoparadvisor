@@ -21,7 +21,8 @@ parser.add_argument('--lamda', type=float, default=1e-6, help='the noise to inje
 parser.add_argument('--batch_size', type=int, default=1, help='batch size for BO.')
 parser.add_argument('--n_trials', type=int, default=20, help='number of trials for the experiment')
 parser.add_argument('--n_init', type=int, default=20, help='number of initialising random points')
-parser.add_argument('--failtol', type=int, default=18, help='stop condition')
+parser.add_argument('--failtol', type=int, default=18, help='Shrink Hamming distance-bounded trust region'
+                                                            'the number should be choosen close to the number of parameters')
 parser.add_argument('--save_path', type=str, default='output/', help='save directory of the log files')
 parser.add_argument('--ard', action='store_true', help='whether to enable automatic relevance determination')
 parser.add_argument('--cawarmup', type=int, default=0, help='whether to use coordinate ascent to warm up the process')

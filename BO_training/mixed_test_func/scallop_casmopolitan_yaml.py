@@ -176,7 +176,7 @@ class Assembler(TestFunction):
         self.lb = np.array(lb)
         self.ub = np.array(ub)
         
-        #TODO: now support multi cag parameters
+        #support multi cag parameters
         self.config = self.n_vertices
         
         #self.lamda = lamda
