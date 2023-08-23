@@ -21,6 +21,8 @@ parser.add_argument('--lamda', type=float, default=1e-6, help='the noise to inje
 parser.add_argument('--batch_size', type=int, default=1, help='batch size for BO.')
 parser.add_argument('--n_trials', type=int, default=20, help='number of trials for the experiment')
 parser.add_argument('--n_init', type=int, default=20, help='number of initialising random points')
+parser.add_argument('--failtol', type=int, default=18, help='Shrink Hamming distance-bounded trust region'
+                                                            'the number should be choosen close to the number of parameters')
 parser.add_argument('--save_path', type=str, default='output/', help='save directory of the log files')
 parser.add_argument('--ard', action='store_true', help='whether to enable automatic relevance determination')
 parser.add_argument('--cawarmup', type=int, default=0, help='whether to use coordinate ascent to warm up the process')
@@ -70,12 +72,9 @@ for t in range(args.n_trials):
             'length_max_discrete': 25,
             'length_init_discrete': 20,
         }
-    elif args.problem == 'Scallop':
-        f = Scallop(input_file=args.input_file, boundary_fold = 0, ref_file=args.ref_file)
-        kwargs = {'failtol':18, 'guided_restart':False,'length_init_discrete':100, 'length_min':0.005}
-    elif args.problem == 'stringtie':
-        f = Scallop(input_file=args.input_file, boundary_fold = 0, ref_file=args.ref_file)
-        kwargs = {'failtol':10, 'guided_restart':False,'length_init_discrete':500, 'length_min':0.004}
+    elif args.problem == 'TranscriptAssembler':
+        f = Assembler(input_file=args.input_file, boundary_fold = 0, ref_file=args.ref_file)
+        kwargs = {'failtol':args.failtol, 'guided_restart':False,'length_init_discrete':1000, 'length_min':0.005}
     elif args.problem == 'func2C':
         f = Func2C(lamda=args.lamda)
     elif args.problem == 'func2C_testDiscrete':
