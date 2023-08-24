@@ -103,7 +103,7 @@ class Assembler(TestFunction):
         #NOTE: read in software usage and parameter from yaml file
         #TODO:  read-in file name is still hard coded
         # YAML file store path can be further discussed
-        path = os.path.abspath(os.path.join(os.getcwd(),".."))
+        path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))
         with open(path+'/stringtie.yml', 'r') as file:
             docs = yaml.safe_load(file)
             self.docs = docs

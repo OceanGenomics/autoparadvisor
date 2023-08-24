@@ -168,6 +168,83 @@ class MixtureKernel(Kernel):
                self.lamda * self.categorical_kern.forward(x1_cat, x2_cat, diag, **params) * \
                self.continuous_kern.forward(x1_cont, x2_cont, diag, **params)
 
+class ContKernel(Kernel):
+    """
+    The implementation of the mixed categorical and continuous kernel first proposed in CoCaBO, but re-implemented
+    in gpytorch.
+
+    Note that gpytorch uses the pytorch autodiff engine, and there is no need to manually define the derivatives of
+    the kernel hyperparameters w.r.t the log-marinal likelihood as in the gpy implementation.
+    """
+    has_lengthscale = True
+
+    def __init__(self, 
+                 continuous_dims,
+                 integer_dims=None,
+                 continuous_kern_type='mat52',
+                 continuous_lengthscale_constraint=None,
+                 continuous_ard=True,
+                 **kwargs):
+        """
+
+        Parameters
+        ----------
+        continuous_dims: the dimension indices that are continuous
+        integer_dims: the **continuous indices** that additionally require integer constraint.
+        continuous_kern_type: 'rbf' or 'mat52' (Matern 5/2)
+        continuous_lengthscale_constraint: if supplied the constraint on the lengthscale of the continuous kernel
+        continuous_ard: bool: whether to use ARD for continouous dimensions
+        kwargs: additional parameters.
+        """
+        super(ContKernel, self).__init__(has_lengthscale=True, **kwargs)
+        #pdb.set_trace()
+        #self.categorical_dims = categorical_dims
+        self.continuous_dims = continuous_dims
+        if integer_dims is not None:
+            integer_dims_np = np.asarray(integer_dims).flatten()
+            cont_dims_np = np.asarray(self.continuous_dims).flatten()
+            if not np.all(np.in1d(integer_dims_np, cont_dims_np)):
+                raise ValueError("if supplied, all continuous dimensions with integer constraint must be themselves "
+                                 "contained in the continuous_dimensions!")
+            # Convert the integer dims in terms of indices of the continous dims
+            integer_dims = np.where(np.in1d(self.continuous_dims, integer_dims))[0]
+
+        self.register_parameter(name='raw_lamda', parameter=torch.nn.Parameter(torch.ones(1)))
+        # The lambda must be between 0 and 1.
+        self.register_constraint('raw_lamda', Interval(0., 1.))
+
+        #Initialise the continuous kernal type
+        # By default, we use the Matern 5/2 kernel
+        if continuous_kern_type == 'mat52':
+            self.continuous_kern = WrappedMatern(nu=2.5, ard_num_dims=len(continuous_dims) if continuous_ard else None,
+                                                 integer_dims=integer_dims,
+                                                 lengthscale_constraint=continuous_lengthscale_constraint, **kwargs)
+        elif continuous_kern_type == 'rbf':
+            self.continuous_kern = WrappedRBF(ard_num_dims=len(continuous_dims) if continuous_ard else None,
+                                              integer_dims=integer_dims,
+                                              lengthscale_constraint=continuous_lengthscale_constraint, **kwargs)
+        else:
+            raise NotImplementedError("continuous kernel type %s is not implemented. " % continuous_kern_type)
+
+
+    def forward(self, x1, x2, diag=False, **params):
+        """
+        Parameters
+        ----------
+        x1, x2, diag, params
+        Returns
+        -------
+        """
+        assert x1.shape[1] == len(self.continuous_dims), \
+            'dimension mismatch. Expected number of dimensions %d but got %d in x1' % \
+            (len(self.continuous_dims), x1.shape[1])
+        # could remove this line, should have not effect
+        x1_cont, x2_cont = x1[:, self.continuous_dims], x2[:, self.continuous_dims]
+        # only continuous kernal computed
+        return self.continuous_kern.forward(x1_cont, x2_cont, diag, **params)
+
+
+
 '''
 def wrap(x1, x2, integer_dims):
     """The wrapping transformation for integer dimensions according to Garrido-Merchán and Hernández-Lobato (2020)."""
