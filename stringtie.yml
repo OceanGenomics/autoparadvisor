@@ -14,7 +14,7 @@ testing_software:
 
 
 #tunable parameters for choosed software
-#for catagory parameters: usage TF: 0 False 1 True / turn_on: 0 not use parameter 1 turn on parameter
+#for catagory parameters: usage labels: False / True; turn_on: not use parameter/ turn on parameter
 parameter_bounds:
   - f: {prefix: '-f', type: float, min: 0, max: 1, default: 0.01, hard_min: 0, hard_max: 1, step: 0.1}
   - m: {prefix: '-m', type: int, min: 30, max: 2000, default: 200, hard_min: 30, hard_max: 'inf', step: 2000}
@@ -50,7 +50,7 @@ precheck:
   check_command: grep -c '^chr' {}.gtf
   excute_command: sed -i 's/^chr//' {}.gtf
 
-postcheck:
+getauc:
   #shell command to grep auc from output file
   auc_command: grep -P -o '(?<=auc =)[ 0-9.]*' {}.auc
   #if you want to remove any file produced in process with specific pid

@@ -124,6 +124,11 @@ def train_gp(train_x, train_y, use_ard, num_steps, kern='transformed_overlap', h
                                categorical_kern_type='overlap',
                                integer_dims=int_constrained_dims,
                                **params)
+    elif kern == 'continuous':
+        kernel = ContKernel(cont_dims,
+                 integer_dims=int_constrained_dims,
+                 continuous_ard=use_ard,
+                 **params)
     else:
         raise ValueError('Unknown kernel choice %s' % kern)
 

@@ -28,7 +28,7 @@ def Scallop_base(index,x,Result,input_file,software_path,docs):
         if parameter_type=='cag': 
             label_list = parameter[parameter_name]['label']
             cag_label = label_list[int(x[i])]
-            if parameter[parameter_name]['usage']=='TF':
+            if parameter[parameter_name]['usage']=='labels':
                 pcmd = ' '.join([pcmd, parameter[parameter_name]['prefix'], cag_label])
             elif parameter[parameter_name]['usage']=='turn_on':
                 pcmd = ' '.join([pcmd, cag_label])
@@ -56,14 +56,16 @@ def Scallop_base(index,x,Result,input_file,software_path,docs):
 
     #NOTE this chr part may be removed
     #check if output gft is started with chr, if remove it
-    cmd = docs['precheck']['check_command'].format(pid)
-    chr_header = int(subprocess.getoutput(cmd))
-    print(f'number of transcript start with chr: {chr_header}')
-    #NOTE: remove 'chr' if ref genome doesn't start with chr
-    if chr_header>0:
-        cmd = docs['precheck']['excute_command'].format(pid)
-        print(cmd)
-        os.system(cmd)
+    if docs.get('precheck') is not None and docs['precheck'].get('check_command') is not None:
+        print('precheck detected')
+        cmd = docs['precheck']['check_command'].format(pid)
+        result = int(subprocess.getoutput(cmd))
+        print(f'your precheck result is: {result}')
+        #NOTE: remove 'chr' if ref genome doesn't start with chr
+        if result>0:
+            cmd = docs['precheck']['excute_command'].format(pid)
+            print('excute precheck command: ',cmd)
+            os.system(cmd)
 
     # looping all required evaluation steps
     for val_step in docs['evaluation']:
@@ -81,13 +83,13 @@ def Scallop_base(index,x,Result,input_file,software_path,docs):
         os.system(cmd)
 
     #pdb.set_trace()
-    cmd = docs['postcheck']['auc_command'].format(pid)
+    cmd = docs['getauc']['auc_command'].format(pid)
     auc_val = subprocess.getoutput(cmd)
     print(auc_val)
     Result[index] = 0.0 if auc_val == '' else float(auc_val)
 
     # remove files with pid
-    cmd = docs['postcheck']['clear_command'].format(pid)
+    cmd = docs['getauc']['clear_command'].format(pid)
     os.system(cmd)
 
 
@@ -103,7 +105,7 @@ class Assembler(TestFunction):
         #NOTE: read in software usage and parameter from yaml file
         #TODO:  read-in file name is still hard coded
         # YAML file store path can be further discussed
-        path = os.path.abspath(os.path.join(os.getcwd(),".."))
+        path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))
         with open(path+'/stringtie.yml', 'r') as file:
             docs = yaml.safe_load(file)
             self.docs = docs
