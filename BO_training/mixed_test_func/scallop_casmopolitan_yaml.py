@@ -7,7 +7,7 @@ import subprocess
 import yaml
 import copy
 
-def Scallop_base(index,x,Result,input_file,software_path,docs):
+def Scallop_base(index,x,Result,input_file,software_path,docs,precheck):
     pid = os.getpid()
     #NOTE: original scallop_bounds list is moved into YAML file
     #initial parameters for choosen software
@@ -56,14 +56,15 @@ def Scallop_base(index,x,Result,input_file,software_path,docs):
 
     #NOTE this chr part may be removed
     #check if output gft is started with chr, if remove it
-    cmd = docs['precheck']['check_command'].format(pid)
-    chr_header = int(subprocess.getoutput(cmd))
-    print(f'number of transcript start with chr: {chr_header}')
-    #NOTE: remove 'chr' if ref genome doesn't start with chr
-    if chr_header>0:
-        cmd = docs['precheck']['excute_command'].format(pid)
-        print(cmd)
-        os.system(cmd)
+    if precheck == True:
+        cmd = docs['precheck']['check_command'].format(pid)
+        result = int(subprocess.getoutput(cmd))
+        print(f'your precheck result is: {result}')
+        #NOTE: remove 'chr' if ref genome doesn't start with chr
+        if result>0:
+            cmd = docs['precheck']['excute_command'].format(pid)
+            print('excute precheck command: ',cmd)
+            os.system(cmd)
 
     # looping all required evaluation steps
     for val_step in docs['evaluation']:
@@ -185,7 +186,7 @@ class Assembler(TestFunction):
         self.std = None
         
 
-    def compute(self,X,normalize=False,software_path=''):
+    def compute(self,X,normalize=False,software_path='',precheck=False):
         #pdb.set_trace()
         if X.ndim == 1:
             X = X.reshape(1, -1)
@@ -198,7 +199,7 @@ class Assembler(TestFunction):
             process_list = []
             for i in range(N):
                 tmp_process = multiprocessing.Process(target=Scallop_base, \
-                    args=(i,X[i],Y,self.input_file,software_path,self.docs))
+                    args=(i,X[i],Y,self.input_file,software_path,self.docs,precheck))
                 process_list.append(tmp_process)
             for process in process_list:
                 process.start()
