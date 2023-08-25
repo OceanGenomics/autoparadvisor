@@ -7,7 +7,7 @@ import subprocess
 import yaml
 import copy
 
-def Scallop_base(index,x,Result,input_file,software_path,docs,precheck):
+def Scallop_base(index,x,Result,input_file,software_path,docs):
     pid = os.getpid()
     #NOTE: original scallop_bounds list is moved into YAML file
     #initial parameters for choosen software
@@ -56,7 +56,8 @@ def Scallop_base(index,x,Result,input_file,software_path,docs,precheck):
 
     #NOTE this chr part may be removed
     #check if output gft is started with chr, if remove it
-    if precheck == True:
+    if docs.get('precheck') is not None and docs['precheck'].get('check_command') is not None:
+        print('precheck detected')
         cmd = docs['precheck']['check_command'].format(pid)
         result = int(subprocess.getoutput(cmd))
         print(f'your precheck result is: {result}')
@@ -186,7 +187,7 @@ class Assembler(TestFunction):
         self.std = None
         
 
-    def compute(self,X,normalize=False,software_path='',precheck=False):
+    def compute(self,X,normalize=False,software_path=''):
         #pdb.set_trace()
         if X.ndim == 1:
             X = X.reshape(1, -1)
@@ -199,7 +200,7 @@ class Assembler(TestFunction):
             process_list = []
             for i in range(N):
                 tmp_process = multiprocessing.Process(target=Scallop_base, \
-                    args=(i,X[i],Y,self.input_file,software_path,self.docs,precheck))
+                    args=(i,X[i],Y,self.input_file,software_path,self.docs))
                 process_list.append(tmp_process)
             for process in process_list:
                 process.start()

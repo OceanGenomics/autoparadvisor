@@ -39,7 +39,6 @@ parser.add_argument('--input_file',type=str, default=None, help='the input file/
 parser.add_argument('--ref_file',type=str,default='',help='reference file for assembler software, gtf format')
 parser.add_argument('--software_path',type=str,default='',help='The path of the testing blackbox software')
 parser.add_argument('--param_type',type=str,default='mixed',help='parameter type can be category or continuous or mixed')
-parser.add_argument('--precheck',type=bool,default=False,help='if you defined any precheck command in yaml, enter True here')
 
 
 args = parser.parse_args()
@@ -173,7 +172,7 @@ for t in range(args.n_trials):
         n_init_num = len(y_next)
     else:
         x_next = optim.suggest(args.batch_size)
-        y_next = f.compute(x_next, normalize=f.normalize,software_path=args.software_path,precheck=args.precheck)
+        y_next = f.compute(x_next, normalize=f.normalize,software_path=args.software_path)
         optim.observe(x_next, y_next)
         n_init_num = args.n_init
     end = time.time()
@@ -182,7 +181,7 @@ for t in range(args.n_trials):
         #pdb.set_trace()
         start = time.time()
         x_next = optim.suggest(args.batch_size)
-        y_next = f.compute(x_next, normalize=f.normalize,software_path=args.software_path,precheck=args.precheck)
+        y_next = f.compute(x_next, normalize=f.normalize,software_path=args.software_path)
         optim.observe(x_next, y_next)
         end = time.time()
         T_array.append(end - start)
